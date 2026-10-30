@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,4 +10,216 @@
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
+</html> -->
+
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Приглашение на свадьбу</title>
+  <meta name="description" content="Приглашение на нашу свадьбу">
+  <meta name="theme-color" content="#6d1a2c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%236d1a2c'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%23fff' opacity='.8'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap&subset=cyrillic" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body class="locked">
+
+  <!-- общие SVG-определения: жемчужина -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <radialGradient id="pearl" cx="34%" cy="30%" r="75%">
+        <stop offset="0" stop-color="#fffdf0"/>
+        <stop offset=".28" stop-color="#fbf0cc"/>
+        <stop offset=".65" stop-color="#ead29a"/>
+        <stop offset="1" stop-color="#b8975a"/>
+      </radialGradient>
+    </defs>
+  </svg>
+
+  <canvas id="silk" aria-hidden="true"></canvas>
+
+  <!-- ===================== ИНТРО: КОНВЕРТ ===================== -->
+  <div id="intro">
+    <div class="env-body">
+      <svg class="env-texture" width="100%" height="100%" aria-hidden="true">
+        <defs>
+          <pattern id="floral" width="150" height="150" patternUnits="userSpaceOnUse">
+            <g class="emboss" fill="none" stroke="#fff" stroke-width="1.4" opacity=".55">
+              <g transform="translate(40 42)">
+                <circle r="5"/>
+                <ellipse rx="9" ry="17" cy="-19"/><ellipse rx="9" ry="17" cy="-19" transform="rotate(72)"/>
+                <ellipse rx="9" ry="17" cy="-19" transform="rotate(144)"/><ellipse rx="9" ry="17" cy="-19" transform="rotate(216)"/>
+                <ellipse rx="9" ry="17" cy="-19" transform="rotate(288)"/>
+              </g>
+              <g transform="translate(112 108) scale(.75)">
+                <circle r="5"/>
+                <ellipse rx="9" ry="17" cy="-19"/><ellipse rx="9" ry="17" cy="-19" transform="rotate(60)"/>
+                <ellipse rx="9" ry="17" cy="-19" transform="rotate(120)"/><ellipse rx="9" ry="17" cy="-19" transform="rotate(180)"/>
+                <ellipse rx="9" ry="17" cy="-19" transform="rotate(240)"/><ellipse rx="9" ry="17" cy="-19" transform="rotate(300)"/>
+              </g>
+              <path d="M75 12c14 10 20 26 18 44M75 12c-14 10-20 26-18 44M118 36c9 4 14 12 14 22M20 112c8-4 16-3 24 3M62 138c10-12 22-16 36-14"/>
+            </g>
+          </pattern>
+          <filter id="paper" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="4" result="n"/>
+            <feColorMatrix in="n" type="saturate" values="0"/>
+            <feComponentTransfer><feFuncA type="table" tableValues="0 .08"/></feComponentTransfer>
+          </filter>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#floral)"/>
+        <rect width="100%" height="100%" filter="url(#paper)"/>
+      </svg>
+      <div class="env-fold" aria-hidden="true"></div>
+    </div>
+
+    <div class="flap" aria-hidden="true">
+      <div class="flap-paper"></div>
+      <div class="flap-pearls" data-strand="flap"></div>
+    </div>
+
+    <button class="seal" id="seal" type="button" aria-label="Открыть приглашение">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <radialGradient id="wax" cx="38%" cy="30%" r="80%">
+            <stop offset="0" stop-color="#b8405c"/><stop offset=".55" stop-color="#7d1f34"/><stop offset="1" stop-color="#4a0f1e"/>
+          </radialGradient>
+          <radialGradient id="waxIn" cx="60%" cy="70%" r="80%">
+            <stop offset="0" stop-color="#8c2a40"/><stop offset="1" stop-color="#5e1424"/>
+          </radialGradient>
+          <filter id="sealShadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#2a0510" flood-opacity=".4"/>
+          </filter>
+        </defs>
+        <path filter="url(#sealShadow)" fill="url(#wax)" d="M100 6c9 0 14 7 23 8s16-3 22 4 3 15 9 22 15 8 18 17-4 15-1 24 11 12 9 22-10 12-15 20-2 17-10 22-16 2-25 6-14 12-24 12-15-8-24-12-18 0-25-6-5-15-10-22-14-10-15-20 6-14 9-22-4-15 1-24 15-10 18-17 3-14 9-22 13-4 22-4 14-8 23-8z"/>
+        <circle cx="100" cy="100" r="62" fill="url(#waxIn)" stroke="#e9a0ac" stroke-opacity=".45" stroke-width="2"/>
+        <circle cx="100" cy="100" r="62" fill="none" stroke="#1f0309" stroke-opacity=".45" stroke-width="1.5" transform="translate(1.5 2)"/>
+        <circle cx="100" cy="100" r="52" fill="none" stroke="#e9a0ac" stroke-opacity=".5" stroke-width="1" stroke-dasharray="1.5 4" stroke-linecap="round"/>
+        <text class="seal-mono" x="100" y="113" text-anchor="middle" data-bind="monogram"></text>
+      </svg>
+    </button>
+    <p class="env-hint">Нажмите, и конверт откроется</p>
+    <div class="env-flash"></div>
+  </div>
+
+  <!-- ===================== САЙТ ===================== -->
+  <button class="sound" id="sound" type="button" aria-label="Включить музыку" aria-pressed="false">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/>
+      <g class="waves"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g>
+      <path class="mute-x" d="M16 9.5l4 5M20 9.5l-4 5"/>
+    </svg>
+  </button>
+
+  <main class="column" id="top">
+
+    <!-- 1. Главный экран -->
+    <section class="hero light" id="hero">
+      <canvas class="pearl3d" id="pearl3d" aria-hidden="true"></canvas>
+      <div class="scatter" data-n="5"></div>
+      <p class="eyebrow rv">Приглашение на свадьбу</p>
+      <h1 class="names rv">
+        <span data-bind="groom"></span>
+        <i>&amp;</i>
+        <span data-bind="bride"></span>
+      </h1>
+      <p class="script big rv" data-bind="dateLong"></p>
+      <a class="scroll-hint rv" href="#guests" aria-label="Листать вниз"><span></span></a>
+    </section>
+
+    <!-- 2. Дорогие гости -->
+    <section class="panel" id="guests">
+      <div class="scatter" data-n="9"></div>
+      <h2 class="title rv">Дорогие гости!</h2>
+      <p class="script rv">любимые и родные</p>
+      <div class="pearls" data-strand="wave" data-y0=".15" data-y1=".7" data-sag=".5"></div>
+      <p class="lead rv">
+        Мы верим, что этот день станет красивым началом нашей <b>счастливой</b> совместной жизни.<br>
+        Приглашаем вас на нашу <b>свадьбу</b>, которая состоится:
+      </p>
+      <div class="datestack rv">
+        <span data-bind="dd"></span>
+        <span data-bind="mm"></span>
+        <span data-bind="yy"></span>
+        <em class="script" data-bind="timeAt"></em>
+      </div>
+    </section>
+
+    <!-- 3. Тайминг -->
+    <section class="timing light" id="timing">
+      <h2 class="title rv">Тайминг</h2>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
+
+    <!-- 5. Дресс-код + детали -->
+    <section class="panel" id="dress">
+      <div class="scatter" data-n="9"></div>
+      <h2 class="title rv">Дресс-код</h2>
+      <p class="lead rv" data-bind="dressText"></p>
+      <div class="swatches rv" id="swatches"></div>
+      <div class="pearls" data-strand="wave" data-y0=".6" data-y1=".4" data-sag=".25"></div>
+      <h2 class="title rv spaced">Детали</h2>
+      <p class="lead rv">
+        По всем вопросам, связанным с торжественным вечером и сюрпризами, вы можете обратиться к нашему
+        замечательному организатору <b data-bind="orgName"></b>
+      </p>
+      <a class="btn ghost rv" id="orgLink"></a>
+    </section>
+
+    <!-- 6. Присутствие -->
+    <section class="panel sand" id="rsvp">
+      <div class="scatter" data-n="5"></div>
+      <h2 class="title rv">Присутствие</h2>
+      <p class="lead rv">Пожалуйста, заполните анкету гостя до <b data-bind="deadline"></b></p>
+      <form id="form" class="form rv" novalidate>
+        <label class="field">
+          <span>Ваше имя и фамилия</span>
+          <input name="name" type="text" autocomplete="name" placeholder="Иван Иванов / Мария Иванова" required>
+        </label>
+        <fieldset class="field">
+          <legend>Планируете ли присутствовать на свадьбе?</legend>
+          <label class="radio"><input type="radio" name="presence" value="Обязательно приду" required><i></i>Обязательно приду</label>
+          <label class="radio"><input type="radio" name="presence" value="Буду со второй половинкой"><i></i>Буду со второй половинкой</label>
+          <label class="radio"><input type="radio" name="presence" value="Не смогу присутствовать"><i></i>Не смогу присутствовать</label>
+        </fieldset>
+        <label class="field">
+          <span>Пожелания или аллергии (необязательно)</span>
+          <textarea name="note" rows="2" placeholder="Что нам стоит знать?"></textarea>
+        </label>
+        <p class="form-error" id="formError" role="alert"></p>
+        <button class="btn solid" type="submit">Отправить</button>
+      </form>
+      <div class="thanks" id="thanks" hidden>
+        <p class="script big">Спасибо!</p>
+        <p class="lead">Ваш ответ получен. Мы очень ждём встречи с вами.</p>
+      </div>
+    </section>
+
+    <!-- 7. Финал -->
+    <section class="finale light" id="finale">
+      <svg class="rings rv" viewBox="0 0 120 70" width="96" aria-hidden="true">
+        <defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3dca0"/><stop offset=".5" stop-color="#c79f4f"/><stop offset="1" stop-color="#f0d792"/></linearGradient></defs>
+        <circle cx="44" cy="35" r="26" fill="none" stroke="url(#gold)" stroke-width="3.5"/>
+        <circle cx="76" cy="35" r="26" fill="none" stroke="url(#gold)" stroke-width="3.5"/>
+      </svg>
+      <p class="script big rv">Искренне ваши,</p>
+      <p class="names small rv"><span data-bind="groom"></span> и <span data-bind="bride"></span></p>
+      <p class="until rv">До свадьбы осталось:</p>
+      <div class="countdown rv" id="countdown">
+        <div><b id="cd-d">0</b><span>дней</span></div>
+        <div><b id="cd-h">0</b><span>часов</span></div>
+        <div><b id="cd-m">0</b><span>минут</span></div>
+        <div><b id="cd-s">0</b><span>секунд</span></div>
+      </div>
+      <p class="made">с любовью, для вас</p>
+    </section>
+  </main>
+
+  <script src="./src/config.js"></script>
+  <script src="./src/main.ts"></script>
+</body>
 </html>
