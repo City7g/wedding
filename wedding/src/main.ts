@@ -11,29 +11,42 @@
   /* ------------------------------------------------------------------ */
   const date = new Date(C.date);
   const fmt = (o) => new Intl.DateTimeFormat('ru-RU', o).format(date);
+  const dayMonth = fmt({ day: 'numeric', month: 'long' });
+  const cel = C.celebration || {};
   const bind = {
     groom: C.groom,
     bride: C.bride,
-    monogram: C.groom[0] + '&' + C.bride[0],
-    dateLong: fmt({ weekday: 'long', day: 'numeric', month: 'long' }),
-    dd: pad(date.getDate()),
-    mm: pad(date.getMonth() + 1),
-    yy: String(date.getFullYear()).slice(-2),
-    timeAt: 'в ' + pad(date.getHours()) + ':' + pad(date.getMinutes()),
+    signature: `${C.groom} и ${C.bride}`,
+    dd: date.getDate(),
+    yyyy: date.getFullYear(),
+    monthName: fmt({ month: 'long' }),
+    weekdayName: fmt({ weekday: 'long' }),
+    timeLine: 'Начало в ' + pad(date.getHours()) + ':' + pad(date.getMinutes()),
+    untilLine: 'До ' + fmt({ day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
+    programSub: fmt({ weekday: 'long' }) + ', ' + dayMonth,
+    celSubtitle: cel.subtitle || '',
+    celText: cel.text || '',
+    dressSub: C.dresscode.subtitle || '',
     dressText: C.dresscode.text,
+    winterNote: C.winterNote || '',
     orgName: C.organizer.name,
     deadline: C.rsvp.deadline,
   };
   $$('[data-bind]').forEach(el => { el.textContent = bind[el.dataset.bind] ?? ''; });
   document.title = `${C.groom} & ${C.bride} — приглашение на свадьбу`;
 
-  $('#timeline').innerHTML = C.timeline.map(t =>
-    `<li class="rv"><time>${t.time}</time><strong>${t.title}</strong><p>${t.text}</p></li>`).join('');
+  const photo = $('#photo'), photoImg = $('#photoImg');
+  if (C.photo) {
+    photoImg.onload = () => photo.classList.add('loaded');
+    photoImg.onerror = () => photo.classList.add('empty');
+    photoImg.src = C.photo;
+  } else photo.classList.add('empty');
 
-  $('#swatches').innerHTML = C.dresscode.colors.map(([d, m, l]) =>
-    `<span class="swatch" style="background:
-      radial-gradient(circle at 30% 25%, ${l} 0, transparent 38%),
-      linear-gradient(115deg, ${d} 0%, ${m} 22%, ${l} 38%, ${m} 52%, ${d} 66%, ${m} 82%, ${l} 100%)"></span>`).join('');
+  $('#storyText').innerHTML = (C.story || []).map(p => `<p class="rv">${p}</p>`).join('');
+
+  const place = [cel.place, cel.address].filter(Boolean);
+  $('#celPlace').innerHTML = place.length ? place.map((t, i) => i ? `<small style="display:block;margin-top:6px;font-size:14px;opacity:.8">${t}</small>` : t).join('') : '';
+  if (cel.link) { const a = $('#celLink'); a.href = cel.link; a.hidden = false; }
 
   const org = $('#orgLink');
   const tg = C.organizer.telegram, phone = C.organizer.phone;
@@ -41,263 +54,258 @@
   org.textContent = tg ? 'Написать в Telegram' : phone;
   if (tg) org.target = '_blank';
 
-  /* ------------------------------------------------------------------ */
-  /* Жемчужные нити                                                      */
-  /* ------------------------------------------------------------------ */
-  const NS = 'http://www.w3.org/2000/svg';
-  function drawPearls(svg, pts, size, gap) {
-    // pts: функция t -> {x, y}; нить раскладывается по равной длине дуги
-    const samples = [];
-    let len = 0, prev = pts(0);
-    for (let i = 0; i <= 400; i++) {
-      const p = pts(i / 400);
-      len += Math.hypot(p.x - prev.x, p.y - prev.y);
-      samples.push({ ...p, len });
-      prev = p;
-    }
-    svg.textContent = '';
-    for (let d = 0, k = 0; d <= len; d += size * gap) {
-      while (k < samples.length - 1 && samples[k].len < d) k++;
-      const c = document.createElementNS(NS, 'circle');
-      c.setAttribute('cx', samples[k].x.toFixed(1));
-      c.setAttribute('cy', samples[k].y.toFixed(1));
-      c.setAttribute('r', (size / 2).toFixed(1));
-      c.setAttribute('fill', 'url(#pearl)');
-      svg.appendChild(c);
-    }
-  }
-  function renderStrands() {
-    $$('[data-strand]').forEach(el => {
-      let svg = $('svg', el);
-      if (!svg) { svg = document.createElementNS(NS, 'svg'); el.appendChild(svg); }
-      const w = el.clientWidth, h = el.clientHeight;
-      if (el.dataset.strand === 'flap') {
-        const size = Math.max(13, Math.min(w, 600) / 26);
-        const draw = (x0) => (t) => ({ x: x0 + (w / 2 - x0) * t, y: h * t });
-        const g1 = document.createElementNS(NS, 'g'), g2 = document.createElementNS(NS, 'g');
-        svg.textContent = '';
-        svg.append(g1, g2);
-        drawPearls(g1, draw(-size), size, 0.95);
-        drawPearls(g2, (t) => ({ x: w - draw(-size)(t).x, y: h * t }), size, 0.95);
-        return;
-      }
-      const y0 = +el.dataset.y0 * h, y1 = +el.dataset.y1 * h, sag = +el.dataset.sag * h;
-      drawPearls(svg, (t) => {
-        const x = -10 + (w + 20) * t;
-        // квадратичная кривая провисания + мягкая волна
-        const y = y0 + (y1 - y0) * t + Math.sin(Math.PI * t) * sag - Math.sin(t * Math.PI * 2) * 6;
-        return { x, y };
-      }, 11, 0.9);
-    });
-  }
+  $('#swatches').innerHTML = C.dresscode.colors.map(([d, m, l]) =>
+    `<span class="swatch" style="background:
+      radial-gradient(circle at 30% 25%, ${l} 0, transparent 38%),
+      linear-gradient(115deg, ${d} 0%, ${m} 22%, ${l} 38%, ${m} 52%, ${d} 66%, ${m} 82%, ${l} 100%)"></span>`).join('');
 
-  /* разбросанные жемчужины с параллаксом */
-  const floaters = [];
-  function scatter() {
-    $$('.scatter').forEach(host => {
-      host.textContent = '';
-      const n = +host.dataset.n || 6;
-      for (let i = 0; i < n; i++) {
-        const u = document.createElement('u');
-        const s = 8 + Math.random() * Math.random() * 30;
-        u.style.cssText = `left:${Math.random() * 94}%;top:${4 + Math.random() * 90}%;width:${s}px;height:${s}px`;
-        const p = document.createElement('i');
-        p.style.cssText = `width:100%;height:100%;animation-delay:${-Math.random() * 7}s;animation-duration:${6 + Math.random() * 5}s`;
-        u.appendChild(p);
-        host.appendChild(u);
-        floaters.push({ el: u, speed: 0.03 + (s / 38) * 0.14 + Math.random() * 0.03 });
-      }
-    });
-  }
+  /* полоска дат: за два дня до и после праздника */
+  const HEART = '<svg viewBox="0 0 24 22"><path d="M12 21C3 14 2 8 6 5.500 8.800 3.500 11 5 12 7 13 5 15.200 3.500 18 5.500 22 8 21 14 12 21Z" fill="#6d1a2c"/></svg>';
+  $('#datestrip').innerHTML = [-2, -1, 0, 1, 2].map(k => {
+    const n = new Date(date.getTime() + k * 86400000).getDate();
+    return k ? `<span>${n}</span>` : `<span class="on">${HEART}<span>${n}</span></span>`;
+  }).join('');
 
   /* ------------------------------------------------------------------ */
-  /* WebGL: шёлк                                                         */
+  /* «Живопись»: процедурные иллюстрации в SVG                           */
   /* ------------------------------------------------------------------ */
-  const silk = (() => {
-    const canvas = $('#silk');
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
-    if (!gl) return null;
-
-    const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-    const fs = `
-      precision highp float;
-      uniform vec2 uRes; uniform float uTime, uScroll, uDark; uniform vec2 uMouse;
-
-      float height(vec2 p){
-        float t = uTime * .055;
-        vec2 q = p + .38 * vec2(sin(p.y * 1.6 + t * 2.0), cos(p.x * 1.2 - t * 1.6));
-        float h = sin(q.x * 2.0 + q.y * 1.25 + t * 3.0) * .55;
-        q += .26 * vec2(sin(q.y * 2.8 - t * 2.0), cos(q.x * 2.2 + t));
-        h += sin(q.x * 3.6 - q.y * 2.1 - t * 2.0) * .28;
-        h += sin(q.x * 6.3 + q.y * 5.1 + t * 4.0) * .07;
-        return h;
-      }
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-
-      void main(){
-        vec2 uv = gl_FragCoord.xy / uRes;
-        vec2 p = (uv - .5) * vec2(uRes.x / uRes.y, 1.) * 2.7;
-        p.y -= uScroll * 1.1;
-        float e = .01;
-        float h  = height(p);
-        float hx = height(p + vec2(e, 0.));
-        float hy = height(p + vec2(0., e));
-        vec3 n = normalize(vec3(-(hx - h) / e * .55, -(hy - h) / e * .55, 1.));
-
-        vec3 L = normalize(vec3(-.45 + uMouse.x * .5, .55 + uMouse.y * .35, .75));
-        vec3 H = normalize(L + vec3(0., 0., 1.));
-        float diff = dot(n, L) * .5 + .5;
-        float spec = pow(max(dot(n, H), 0.), 70.);
-        float rim  = pow(1. - n.z, 1.6);
-
-        vec3 deep  = vec3(.16, .02, .06);
-        vec3 mid   = vec3(.46, .08, .17);
-        vec3 light = vec3(.86, .46, .44);
-        vec3 col = mix(deep, mid, smoothstep(.15, .62, diff));
-        col = mix(col, light, smoothstep(.7, 1.0, diff));
-        col += spec * .3 * vec3(1., .92, .62);
-        col = mix(col, col * .9, smoothstep(.85, 1., diff) * .5);
-        col += rim * .04 * vec3(1., .85, .5);
-
-        col = mix(col, col * vec3(.55, .42, .45), uDark);
-        float v = smoothstep(1.25, .25, length(uv - .5));
-        col *= .86 + .14 * v;
-        col += (hash(gl_FragCoord.xy + uTime) - .5) * .018;
-        gl_FragColor = vec4(col, 1.);
-      }`;
-
-    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-    const prog = gl.createProgram();
-    gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
-    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(prog)); return null; }
-    gl.useProgram(prog);
-
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'p');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = n => gl.getUniformLocation(prog, n);
-    const u = { res: U('uRes'), time: U('uTime'), scroll: U('uScroll'), dark: U('uDark'), mouse: U('uMouse') };
-
-    // шёлк плавный — считаем в пониженном разрешении
-    const resize = () => {
-      const k = Math.min(devicePixelRatio || 1, 1.5) * 0.55;
-      canvas.width = Math.max(2, Math.round(innerWidth * k));
-      canvas.height = Math.max(2, Math.round(innerHeight * k));
-      gl.viewport(0, 0, canvas.width, canvas.height);
+  const rng = (seed) => {
+    let a = (seed * 2654435761) >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-    resize();
-    addEventListener('resize', resize);
+  };
+  const f1 = n => +n.toFixed(1);
+  const INK = '#2b141b';
+  const FIR = ['#2f4f3a', '#3d6048', '#55775a', '#6e9070'];
+  const PINKS = [['#f4b6c2', '#c4546b', '#f1dc98'], ['#f9d4da', '#d98a9b', '#f1dc98'], ['#e9a0ae', '#a8475c', '#f1dc98']];
 
-    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-    addEventListener('pointermove', e => {
-      mouse.tx = e.clientX / innerWidth - .5;
-      mouse.ty = .5 - e.clientY / innerHeight;
-    }, { passive: true });
+  const blossom = (x, y, s, cols, rot) => {
+    let p = '';
+    for (let i = 0; i < 5; i++) p += `<ellipse cx="0" cy="${f1(-s * .58)}" rx="${f1(s * .4)}" ry="${f1(s * .6)}" transform="rotate(${i * 72})" fill="${cols[0]}" stroke="${cols[1]}" stroke-width="${f1(s * .06)}"/>`;
+    for (let i = 0; i < 5; i++) p += `<ellipse cx="0" cy="${f1(-s * .66)}" rx="${f1(s * .16)}" ry="${f1(s * .3)}" transform="rotate(${i * 72})" fill="#fff" opacity=".3"/>`;
+    p += `<circle r="${f1(s * .24)}" fill="${cols[2]}"/>`;
+    return `<g transform="translate(${f1(x)} ${f1(y)}) rotate(${f1(rot)})">${p}</g>`;
+  };
 
-    let dark = 0, scroll = 0;
-    const t0 = performance.now();
-    const frame = (now) => {
-      mouse.x += (mouse.tx - mouse.x) * .04;
-      mouse.y += (mouse.ty - mouse.y) * .04;
-      scroll += (scrollY / innerHeight - scroll) * .08;
-      const fin = $('#finale').getBoundingClientRect();
-      const targetDark = Math.min(1, Math.max(0, 1 - fin.top / innerHeight)) * .38;
-      dark += (targetDark - dark) * .05;
-      gl.uniform2f(u.res, canvas.width, canvas.height);
-      gl.uniform1f(u.time, reduce ? 20 : (now - t0) / 1000);
-      gl.uniform1f(u.scroll, scroll * .35);
-      gl.uniform1f(u.dark, dark);
-      gl.uniform2f(u.mouse, mouse.x, mouse.y);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      requestAnimationFrame(frame);
+  /* зимние элементы: хвоя, ягоды, звёздочки */
+  const needles = (x, y, ang, len, r) => {
+    let s = '';
+    for (let i = 0; i < 7; i++) {
+      const a = (ang - 64 + i * (128 / 6) + (r() - .5) * 10) * Math.PI / 180, l = len * (.7 + r() * .5);
+      const x2 = x + Math.cos(a) * l, y2 = y + Math.sin(a) * l;
+      s += `<path d="M${f1(x)} ${f1(y)}L${f1(x2)} ${f1(y2)}" stroke="${FIR[Math.floor(r() * 4)]}" stroke-width="2.4" stroke-linecap="round"/>`;
+      if (r() < .4) s += `<circle cx="${f1(x2)}" cy="${f1(y2)}" r="1.7" fill="#fff" opacity=".9"/>`;
+    }
+    return s;
+  };
+  const berries = (x, y, s = 1) => [[0, 0], [7, -3], [-6, -4], [2, -9]].map(([dx, dy]) =>
+    `<circle cx="${f1(x + dx * s)}" cy="${f1(y + dy * s)}" r="${f1(4.2 * s)}" fill="#8c1f38"/><circle cx="${f1(x + dx * s - 1.2 * s)}" cy="${f1(y + dy * s - 1.4 * s)}" r="${f1(1.2 * s)}" fill="#fff" opacity=".75"/>`).join('');
+  const star = (x, y, s, fill = '#e6c765') =>
+    `<path transform="translate(${f1(x)} ${f1(y)}) scale(${s})" d="M0-10L2.6-2.6 10 0 2.6 2.6 0 10-2.6 2.6-10 0-2.6-2.6Z" fill="${fill}"/>`;
+
+  function firSVG({ w, h, p0, p1, p2, n, len, seed }) {
+    const r = rng(seed);
+    const Q = (t, a, b, c) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+    const pt = t => [Q(t, p0[0], p1[0], p2[0]), Q(t, p0[1], p1[1], p2[1])];
+    const dr = t => [2 * (1 - t) * (p1[0] - p0[0]) + 2 * t * (p2[0] - p1[0]), 2 * (1 - t) * (p1[1] - p0[1]) + 2 * t * (p2[1] - p1[1])];
+    let g = `<path d="M${p0}Q${p1} ${p2}" fill="none" stroke="#5a4a2a" stroke-width="3.2" stroke-linecap="round"/>`;
+    for (let i = 0; i < n; i++) {
+      const t = (i + .5) / n, [x, y] = pt(t), [dx, dy] = dr(t), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      for (const side of [-1, 1]) {
+        const ta = ang + side * (48 + r() * 18), l = len * (.7 + r() * .5) * (1 - .3 * t), rad = ta * Math.PI / 180;
+        const x2 = x + Math.cos(rad) * l, y2 = y + Math.sin(rad) * l;
+        g += `<path d="M${f1(x)} ${f1(y)}L${f1(x2)} ${f1(y2)}" stroke="#5a4a2a" stroke-width="2" stroke-linecap="round"/>`;
+        g += needles(x + (x2 - x) * .45, y + (y2 - y) * .45, ta, l * .38, r) + needles(x2, y2, ta, l * .42, r);
+        if (r() < .4) g += `<ellipse cx="${f1(x + (x2 - x) * .6)}" cy="${f1(y + (y2 - y) * .6 - 3)}" rx="7" ry="2.2" fill="#fff" opacity=".9" transform="rotate(${f1(ta)} ${f1(x + (x2 - x) * .6)} ${f1(y + (y2 - y) * .6 - 3)})"/>`;
+      }
+    }
+    { const [x, y] = pt(1), [dx, dy] = dr(1); g += needles(x, y, Math.atan2(dy, dx) * 180 / Math.PI, len * .55, r); }
+    for (let k = 0; k < 4; k++) {
+      const t = .2 + .65 * r(), [x, y] = pt(t), [dx, dy] = dr(t), m = Math.hypot(dx, dy) || 1, off = (r() < .5 ? -1 : 1) * (12 + r() * 14);
+      g += berries(x - dy / m * off, y + dx / m * off, 1 + r() * .4);
+    }
+    g += star(pt(.55)[0] + 14, pt(.55)[1] - 18, .9);
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g}</svg>`;
+  }
+
+  const berrySVG = (seed) => {
+    const r = rng(seed);
+    let g = '';
+    for (let i = 0; i < 7; i++) g += needles(44, 44, 4 + i * 52, 30 + r() * 12, r) + needles(44 + Math.cos((4 + i * 52) * .01745) * 18, 44 + Math.sin((4 + i * 52) * .01745) * 18, 4 + i * 52, 18, r);
+    g += berries(46, 48, 1.5) + berries(84, 34, 1) + berries(34, 86, 1) + star(92, 90, 1.1);
+    return `<svg viewBox="0 0 120 120" aria-hidden="true">${g}</svg>`;
+  };
+
+  const garlandSVG = (seed) => {
+    const r = rng(seed), W = 520, H = 96, y0 = H / 2, A = 20;
+    const Y = x => y0 + Math.sin(x / 38) * A;
+    let d = `M-10 ${f1(Y(-10))}`;
+    for (let x = -4; x <= W + 10; x += 6) d += `L${x} ${f1(Y(x))}`;
+    let g = `<path d="${d}" fill="none" stroke="#5a4a2a" stroke-width="2.600" stroke-linecap="round"/>`;
+    for (let x = 4, i = 0; x < W; x += 22, i++) {
+      const ang = Math.atan2(Math.cos(x / 38) * A / 38, 1) * 180 / Math.PI;
+      g += needles(x, Y(x), ang + (i % 2 ? 90 : -90), 20 + r() * 6, r);
+    }
+    for (let x = 40, i = 0; x < W; x += 86, i++) g += berries(x, Y(x) + (i % 2 ? 8 : -6), 1.1) + star(x + 43, Y(x + 43) + (i % 2 ? -8 : 8), .9);
+    g += `<path d="M0 4H${W}M0 ${H - 4}H${W}" stroke="${INK}" stroke-opacity=".45" stroke-width=".8"/>`;
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${g}</svg>`;
+  };
+
+  const cloudsSVG = () => {
+    const blobs = [
+      [60, 70, 78, 32, '#d9c7dc', .9], [330, 56, 86, 30, '#e8c3cc', .85], [200, 24, 100, 22, '#fbf1d6', .95],
+      [24, 150, 54, 26, '#fbf1d6', .9], [372, 150, 56, 28, '#d9c7dc', .85], [120, 40, 70, 24, '#fff8ea', .95],
+      [290, 100, 66, 22, '#f6e9d6', .85], [86, 118, 60, 20, '#fff8ea', .9], [206, 70, 90, 20, '#fbf6e6', .55],
+      [348, 22, 56, 18, '#c9b4d1', .6], [40, 34, 52, 16, '#c9b4d1', .55],
+    ];
+    const g = blobs.map(([x, y, rx, ry, c, o], i) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}" opacity="${o}" transform="rotate(${(i % 3 - 1) * 5} ${x} ${y})"/>`).join('');
+    return `<svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMin slice" aria-hidden="true">${g}</svg>`;
+  };
+
+  /* зимний пейзаж: вилла в снегу с тёплыми огоньками, ели, ягоды падуба */
+  const landscapeSVG = (id, mode) => {
+    const withSky = mode === 'full', far = mode !== 'villa';
+    const r = rng(42);
+    let g = '';
+    if (withSky) {
+      g += `<defs><linearGradient id="sk-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9b6c6"/><stop offset=".55" stop-color="#f6dfae"/><stop offset="1" stop-color="#fbf1dc"/></linearGradient></defs>`;
+      g += `<rect width="420" height="300" fill="url(#sk-${id})"/>`;
+      g += `<circle cx="300" cy="100" r="64" fill="#fff3c8" opacity=".55"/>`;
+      g += `<ellipse cx="90" cy="58" rx="70" ry="14" fill="#fff8ea" opacity=".8"/><ellipse cx="320" cy="36" rx="60" ry="11" fill="#fbf1d6" opacity=".85"/><ellipse cx="220" cy="84" rx="54" ry="9" fill="#fff8ea" opacity=".65"/>`;
+    }
+    if (far) {
+      g += `<path d="M0 176L46 142 82 164 130 120 176 160 214 146 262 112 316 158 352 136 420 170V224H0Z" fill="#c9b4d1"/>`;
+      [[130, 120], [262, 112], [46, 142], [352, 136]].forEach(([x, y]) => { g += `<path d="M${x} ${y}L${x - 14} ${y + 20}L${x - 5} ${y + 16}L${x} ${y + 24}L${x + 6} ${y + 16}L${x + 15} ${y + 20}Z" fill="#fff" opacity=".95"/>`; });
+      g += `<rect y="194" width="420" height="36" fill="#d3d9ec"/><path d="M20 202h60M120 210h80M250 200h70M330 212h60" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>`;
+    }
+    g += `<path d="M0 218C60 190 140 198 200 212 270 228 340 194 420 208V300H0Z" fill="#f4eef0"/><path d="M0 244C80 228 150 240 220 248 300 256 360 236 420 244V300H0Z" fill="#e8dde9"/>`;
+    const win = (x, y) => `<path d="M${x} ${y + 14}V${y + 5}a5 5 0 0 1 10 0V${y + 14}Z" fill="#f4bd5e" stroke="#6d1a2c" stroke-width="1"/><path d="M${x + 5} ${y}V${y + 14}" stroke="#6d1a2c" stroke-width=".8"/>`;
+    const cap = (x, y, w) => `<rect x="${x}" y="${y - 3}" width="${w}" height="5" rx="2.500" fill="#fff"/>`;
+    g += `<rect x="20" y="238" width="270" height="16" fill="#d8cbb0"/>` + cap(20, 238, 270);
+    g += `<rect x="34" y="118" width="46" height="124" fill="#e8c88e"/><rect x="68" y="118" width="12" height="124" fill="#6d1a2c" opacity=".16"/>`;
+    for (let i = 0; i < 5; i++) g += `<rect x="${34 + i * 10}" y="109" width="7" height="10" fill="#e8c88e"/><rect x="${34 + i * 10}" y="106" width="7" height="4" rx="2" fill="#fff"/>`;
+    g += win(52, 136) + win(52, 172) + win(52, 206);
+    g += `<rect x="80" y="170" width="150" height="70" fill="#f3dcaa"/><path d="M70 172L155 138 240 172Z" fill="#b95a43"/><path d="M74 170L155 141 236 170 226 171 155 150 84 171Z" fill="#fff"/>`;
+    [92, 124, 170, 202].forEach(x => { g += win(x, 190); });
+    g += `<rect x="150" y="204" width="14" height="36" rx="7" fill="#5a1424"/>`;
+    g += `<rect x="196" y="150" width="68" height="94" fill="#ecd09a"/><path d="M188 152L230 124 272 152Z" fill="#a8503b"/><path d="M192 150L230 128 268 150 260 151 230 134 200 151Z" fill="#fff"/>`;
+    g += win(206, 166) + win(236, 166) + win(206, 200) + win(236, 200);
+    g += `<rect x="252" y="150" width="12" height="94" fill="#6d1a2c" opacity=".14"/>`;
+    g += `<rect x="212" y="118" width="9" height="20" fill="#c9a37a"/><rect x="210" y="115" width="13" height="5" rx="2" fill="#fff"/>`;
+    const spruce = (x, y, h, col) => {
+      let s = `<rect x="${x - 2}" y="${y - 6}" width="4" height="8" fill="#4a3526"/>`;
+      for (let k = 0; k < 4; k++) {
+        const yb = y - 6 - k * h * .2, wk = h * .3 * (1 - k * .18), top = yb - h * .38;
+        s += `<path d="M${f1(x - wk)} ${f1(yb)}L${x} ${f1(top)}L${f1(x + wk)} ${f1(yb)}Z" fill="${col}"/>`;
+        s += `<path d="M${f1(x - wk * .62)} ${f1(yb - h * .14)}L${x} ${f1(top)}L${f1(x + wk * .62)} ${f1(yb - h * .14)}Q${x} ${f1(yb - h * .2)} ${f1(x - wk * .62)} ${f1(yb - h * .14)}Z" fill="#fff" opacity=".93"/>`;
+      }
+      return s;
     };
-    requestAnimationFrame(frame);
-    return gl;
-  })();
+    [[308, 266, 122, '#2f4f3a'], [336, 270, 92, '#3d6048'], [364, 264, 132, '#2f4f3a'], [394, 270, 100, '#3d6048'], [12, 270, 106, '#3d6048']].forEach(([x, y, h, c]) => { g += spruce(x, y, h, c); });
+    g += `<path d="M0 270C40 254 90 262 130 270 170 258 230 262 270 272 310 260 370 264 420 270V300H0Z" fill="#fbf8f6"/><rect y="276" width="420" height="24" fill="#f1e9f0"/>`;
+    [[60, 272], [150, 276], [250, 274]].forEach(([x, y]) => {
+      g += `<ellipse cx="${x - 8}" cy="${y}" rx="11" ry="5" fill="#3d6048" transform="rotate(-20 ${x - 8} ${y})"/><ellipse cx="${x + 8}" cy="${y}" rx="11" ry="5" fill="#2f4f3a" transform="rotate(20 ${x + 8} ${y})"/>` + berries(x, y - 1, .8);
+    });
+    for (let i = 0; i < 22; i++) {
+      const x = r() * 420, y = 262 + r() * 34, s = 1.5 + r() * 2.5;
+      g += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(s)}" fill="${['#fff', '#fff', '#8c1f38', '#f1dc98'][i % 4]}"/>`;
+    }
+    return `<svg viewBox="0 0 420 300" preserveAspectRatio="xMidYMax ${mode === 'full' ? 'slice' : 'meet'}" aria-hidden="true">${g}</svg>`;
+  };
+
+  
+/* иконки программы */
+  const ICONS = {
+    glasses: `<g transform="rotate(-14 22 34)"><path d="M14 10h16l-2 20c-.5 5-3 7-6 7s-5.500-2-6-7z" fill="#f1dc98" stroke="${INK}" stroke-width="1.600"/><path d="M22 37v15M15 53h14" stroke="${INK}" stroke-width="1.600" stroke-linecap="round"/></g><g transform="rotate(14 42 34)"><path d="M34 10h16l-2 20c-.5 5-3 7-6 7s-5.500-2-6-7z" fill="#f9d4da" stroke="${INK}" stroke-width="1.600"/><path d="M42 37v15M35 53h14" stroke="${INK}" stroke-width="1.600" stroke-linecap="round"/></g><path d="M32 6v6M29 9h6" stroke="#6d1a2c" stroke-width="1.600" stroke-linecap="round"/>`,
+    rings: `<circle cx="24" cy="38" r="14" fill="none" stroke="#c79f4f" stroke-width="4"/><circle cx="40" cy="38" r="14" fill="none" stroke="#e0bf6a" stroke-width="4"/><path d="M32 8l6 7-6 9-6-9z" fill="#f9d4da" stroke="${INK}" stroke-width="1.500" stroke-linejoin="round"/>`,
+    dinner: `<path d="M8 42a24 22 0 0 1 48 0z" fill="#f1dc98" stroke="${INK}" stroke-width="1.600"/><circle cx="32" cy="17" r="3.500" fill="#6d1a2c"/><path d="M4 47h56" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M14 36a18 16 0 0 1 14-14" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>`,
+    cake: `<rect x="12" y="40" width="40" height="14" rx="3" fill="#fbf6e6" stroke="${INK}" stroke-width="1.600"/><rect x="18" y="28" width="28" height="12" rx="3" fill="#f9d4da" stroke="${INK}" stroke-width="1.600"/><rect x="25" y="18" width="14" height="10" rx="2" fill="#fbf6e6" stroke="${INK}" stroke-width="1.600"/><path d="M32 18v-6" stroke="${INK}" stroke-width="1.600"/><path d="M32 4c4 3 3 7 0 8-3-1-4-5 0-8z" fill="#e9a23a"/><circle cx="20" cy="40" r="2.200" fill="#6d1a2c"/><circle cx="32" cy="40" r="2.200" fill="#6d1a2c"/><circle cx="44" cy="40" r="2.200" fill="#6d1a2c"/>`,
+    moon: `<path d="M40 8a24 24 0 1 0 16 36A20 20 0 0 1 40 8z" fill="#f1dc98" stroke="${INK}" stroke-width="1.600" stroke-linejoin="round"/><path d="M50 12l1.800 4.200 4.200 1.800-4.200 1.800L50 24l-1.800-4.200-4.200-1.800 4.200-1.800z" fill="#6d1a2c"/><circle cx="54" cy="34" r="2" fill="#6d1a2c"/>`,
+    flowers: `<path d="M32 58V30" stroke="#5b6b36" stroke-width="3" stroke-linecap="round"/>${blossom(32, 24, 22, PINKS[0], 0)}${blossom(16, 40, 13, PINKS[1], 20)}${blossom(48, 40, 13, PINKS[2], 40)}`,
+  };
+
+  const ART = {
+    branch: (d) => firSVG({ w: 300, h: 300, p0: [-10, 36], p1: [150, 14], p2: [270, 210], n: 9, len: 52, seed: +d.seed || 1 }),
+    bloom: (d) => berrySVG(+d.seed || 1),
+    vine: (d) => garlandSVG(+d.seed || 1),
+    clouds: () => cloudsSVG(),
+    landscape: (d) => landscapeSVG(d.id || 'x', d.mode || (d.id === 'villa' ? 'villa' : 'full')),
+  };
+  $$('[data-art]').forEach(el => { el.innerHTML = ART[el.dataset.art](el.dataset); });
+
+  /* таймлайн (после иконок: иконки подставляются вручную) */
+  $('#timeline').innerHTML = C.timeline.map((t, i) => `
+    <li class="tl-item rv${i % 2 ? ' alt' : ''}">
+      <div class="txt"><span class="time">${t.time}</span><div class="name">${t.title}</div><div class="desc">${t.text}</div></div>
+      <div class="dot">${HEART}</div>
+      <div class="ico art"><svg viewBox="0 0 64 64" aria-hidden="true">${ICONS[t.icon] || ICONS.flowers}</svg></div>
+    </li>`).join('');
 
   /* ------------------------------------------------------------------ */
-  /* Параллакс и появление                                               */
-  /* ------------------------------------------------------------------ */
-  /* ------------------------------------------------------------------ */
-  /* WebGL: жемчужное сердце на первом экране                            */
-  /* Жемчужины — сферы, считаются в шейдере аналитически; физика на CPU: */
-  /* нить течёт по контуру сердца, отталкивается от курсора/пальца,      */
-  /* бьётся, а по клику рассыпается и собирается снова.                  */
+  /* WebGL: небо, написанное мазками масла                               */
   /* ------------------------------------------------------------------ */
   (() => {
-    const canvas = $('#pearl3d'), hero = $('#hero');
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true });
+    const canvas = $('#paint-sky');
+    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
     if (!gl) return;
-
-    const OUTER = 60, INNER = 26, N = OUTER + INNER;
     const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
     const fs = `
       precision highp float;
-      #define N ${N}
-      uniform vec2 uRes; uniform vec4 uS[N]; uniform float uTime;
+      uniform vec2 uRes, uMouse; uniform float uTime, uScroll, uPush;
 
-      vec3 env(vec3 d){
-        vec3 c = mix(vec3(.32,.05,.11), vec3(1.,.93,.68), smoothstep(-.6, .9, d.y));
-        c += vec3(1., .94, .74) * smoothstep(.55, .96, dot(d, normalize(vec3(-.45, .75, -.5)))) * .9;
-        c += vec3(.85, .35, .4) * smoothstep(.6, .98, dot(d, normalize(vec3(.85, .1, -.5)))) * .4;
-        return c;
+      float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float noise(vec2 p){
+        vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+        return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);
+      }
+      float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + vec2(17.1, 3.7); a *= .5; } return v; }
+
+      // высота «краски»: облака + направленные мазки кисти
+      float field(vec2 p, out float cloud){
+        float t = uTime * .025;
+        vec2 q = p + vec2(t * 3., 0.);
+        vec2 w = vec2(fbm(q * .55 + vec2(0., t)), fbm(q * .55 + vec2(5.2, 1.3) - t));
+        q += (w - .5) * 1.8;
+        float a = fbm(q * .4) * 6.2832;
+        vec2 d = vec2(cos(a), sin(a)), o = vec2(-d.y, d.x);
+        float s1 = noise(vec2(dot(q, d) * .8, dot(q, o) * 8.));
+        float s2 = noise(vec2(dot(q, d) * 2.1, dot(q, o) * 19.));
+        cloud = smoothstep(.36, .7, fbm(q * .75 + 3.));
+        return cloud * .75 + s1 * .24 + s2 * .1;
       }
 
       void main(){
-        vec2 uv = (gl_FragCoord.xy * 2. - uRes) / uRes.y;
-        vec3 ro = vec3(0., 0., -3.);
-        vec3 rd = normalize(vec3(uv, 1.6));
-        float pxW = 3.75 / uRes.y;
+        vec2 uv = gl_FragCoord.xy / uRes; float asp = uRes.x / uRes.y;
+        vec2 p = uv * vec2(asp, 1.) * 2.6 + vec2(0., uScroll);
 
-        float tmin = 1e9, hn = 0., hr = 1.;
-        vec3 hc = vec3(0.);
-        float sh = 0.;
+        // курсор «размазывает» краску
+        vec2 d = (uv - uMouse) * vec2(asp, 1.);
+        float r = exp(-dot(d, d) * 14.);
+        p += r * uPush * vec2(-d.y, d.x) * 4.;
 
-        for (int i = 0; i < N; i++) {
-          vec3 c = uS[i].xyz; float r = uS[i].w;
-          vec3 oc = c - ro;
-          float b = dot(oc, rd);
-          if (b < 0.) continue;
-          float h = r * r - (dot(oc, oc) - b * b);
-          if (h > 0. && b - sqrt(h) < tmin) { tmin = b - sqrt(h); hn = h / (r * r); hc = c; hr = r; }
+        float cl, c2; float e = .012;
+        float h = field(p, cl);
+        float hx = field(p + vec2(e, 0.), c2), hy = field(p + vec2(0., e), c2);
+        vec3 n = normalize(vec3((h - hx) / e * .9, (h - hy) / e * .9, 1.));
+        vec3 L = normalize(vec3(-.5, .6, .65));
+        float diff = dot(n, L) * .5 + .5;
+        float spec = pow(max(dot(reflect(-L, n), vec3(0., 0., 1.)), 0.), 22.);
 
-          // мягкая тень на шёлк (смещена вниз-вправо)
-          vec3 o2 = oc + vec3(.045, -.075, 0.);
-          float b2 = dot(o2, rd);
-          float d2 = sqrt(max(dot(o2, o2) - b2 * b2, 0.));
-          sh = max(sh, smoothstep(r * 2.1, r * .2, d2) * .3);
-        }
-
-        float a = 0.; vec3 col = vec3(0.);
-        if (tmin < 1e8) {
-          vec3 p = ro + rd * tmin;
-          vec3 n = normalize(p - hc);
-          vec3 v = -rd;
-          float ndv = max(dot(n, v), 0.);
-          float fres = pow(1. - ndv, 3.);
-          vec3 L = normalize(vec3(-.45, .75, -.5));
-          float diff = max(dot(n, L), 0.) * .55 + .45;
-
-          vec3 base = vec3(.99, .95, .80);
-          col = base * (.5 + .55 * diff);
-          col = mix(col, col * vec3(.78, .55, .45), 1. - diff);
-          // жемчужный перелив
-          vec3 irid = .5 + .5 * cos(6.2832 * (vec3(0., .33, .67) + ndv * .9 + n.y * .2 + uTime * .02));
-          col = mix(col, col * (.82 + .32 * irid), .55);
-          col = mix(col, env(reflect(rd, n)), .22 + fres * .55);
-          col += pow(max(dot(reflect(-L, n), v), 0.), 90.) * .9;
-          col = min(col, vec3(1.));
-          a = smoothstep(0., 2. * pxW / hr, hn);
-        }
-        vec3 shadowCol = vec3(.10, .005, .03);
-        gl_FragColor = vec4(col * a + shadowCol * sh * (1. - a), a + (1. - a) * sh);
+        vec3 top = vec3(.80, .64, .72), mid = vec3(.97, .87, .64), low = vec3(.99, .95, .86);
+        vec3 sky = mix(low, mid, smoothstep(.08, .5, uv.y));
+        sky = mix(sky, top, smoothstep(.5, 1., uv.y));
+        vec3 cloudLit = vec3(1., .98, .94), cloudShade = vec3(.64, .48, .62);
+        vec3 col = mix(sky, mix(cloudShade, cloudLit, smoothstep(.25, .85, diff)), cl);
+        col *= .8 + .4 * diff;
+        col += spec * .22 * vec3(1., .94, .78);
+        col += (noise(gl_FragCoord.xy * .9) - .5) * .03;   // зерно холста
+        gl_FragColor = vec4(col, 1.);
       }`;
-
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; };
     const prog = gl.createProgram();
     gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
@@ -310,152 +318,79 @@
     const loc = gl.getAttribLocation(prog, 'p');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const uRes = gl.getUniformLocation(prog, 'uRes'), uS = gl.getUniformLocation(prog, 'uS'), uTime = gl.getUniformLocation(prog, 'uTime');
+    const U = n => gl.getUniformLocation(prog, n);
+    const u = { res: U('uRes'), time: U('uTime'), scroll: U('uScroll'), push: U('uPush'), mouse: U('uMouse') };
 
-    // Контур сердца, размеченный по длине дуги: s ∈ [0,1) -> точка
-    const heart = [];
-    {
-      let prev, len = 0;
-      for (let i = 0; i <= 600; i++) {
-        const t = (i / 600) * Math.PI * 2;
-        const x = 16 * Math.sin(t) ** 3 / 16;
-        const y = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16 + .02;
-        if (prev) len += Math.hypot(x - prev[0], y - prev[1]);
-        heart.push([x, y, len]);
-        prev = [x, y];
-      }
-      heart.forEach(h => h[2] /= len);
-    }
-    const onHeart = (s) => {
-      s = ((s % 1) + 1) % 1;
-      let lo = 0, hi = heart.length - 1;
-      while (hi - lo > 1) { const m = (lo + hi) >> 1; heart[m][2] < s ? lo = m : hi = m; }
-      const k = (s - heart[lo][2]) / (heart[hi][2] - heart[lo][2] || 1);
-      return [heart[lo][0] + (heart[hi][0] - heart[lo][0]) * k, heart[lo][1] + (heart[hi][1] - heart[lo][1]) * k];
-    };
-
-    // состояние жемчужин
-    const P = new Float32Array(N * 3), V = new Float32Array(N * 3), T = new Float32Array(N * 3);
-    const radius = Array.from({ length: N }, (_, i) => i < OUTER ? .05 : .037);
-    for (let i = 0; i < N; i++) {
-      P[i * 3] = (Math.random() - .5) * 5; P[i * 3 + 1] = 2.2 + Math.random() * 2.5; P[i * 3 + 2] = (Math.random() - .5) * 2;
-    }
-
-    const world = { w: 1, h: 1, aspect: .5 };
-    const ptr = { x: 0, y: 0, nx: 0, ny: 0, on: false };   // x,y — в мировых координатах, nx,ny — в [-.5,.5]
     const resize = () => {
-      const r = hero.getBoundingClientRect();
-      const dpr = Math.min(devicePixelRatio || 1, 2);
-      canvas.width = Math.max(2, Math.round(r.width * dpr));
-      canvas.height = Math.max(2, Math.round(r.height * dpr));
+      const k = Math.min(devicePixelRatio || 1, 1.5) * 0.5;
+      canvas.width = Math.max(2, Math.round(innerWidth * k));
+      canvas.height = Math.max(2, Math.round(innerHeight * k));
       gl.viewport(0, 0, canvas.width, canvas.height);
-      world.aspect = r.width / r.height;
     };
     resize();
     addEventListener('resize', resize);
 
-    const setPtr = (e) => {
-      const r = hero.getBoundingClientRect();
-      const px = e.clientX - r.left, py = e.clientY - r.top;
-      ptr.x = ((px / r.height) * 2 - world.aspect) * 1.875;
-      ptr.y = (1 - (py / r.height) * 2) * 1.875;
-      ptr.nx = px / r.width - .5; ptr.ny = .5 - py / r.height;
-      ptr.on = py > -40 && py < r.height + 40;
-    };
-    addEventListener('pointermove', setPtr, { passive: true });
-    addEventListener('pointerdown', (e) => {
-      setPtr(e);
-      const r = hero.getBoundingClientRect();
-      if (e.clientY < r.top || e.clientY > r.bottom || e.target.closest('a, button')) return;
-      for (let i = 0; i < N; i++) {           // рассыпаем жемчуг
-        V[i * 3] += (Math.random() - .5) * 7; V[i * 3 + 1] += (Math.random() - .3) * 7; V[i * 3 + 2] += (Math.random() - .5) * 5;
-      }
-    }, { passive: true });
-    document.addEventListener('pointerleave', () => { ptr.on = false; });
-
-    let visible = true;
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(hero);
+    const m = { x: .5, y: .5, tx: .5, ty: .5, push: 0 };
+    const onMove = (e) => { m.tx = e.clientX / innerWidth; m.ty = 1 - e.clientY / innerHeight; };
+    addEventListener('pointermove', onMove, { passive: true });
+    addEventListener('pointerdown', onMove, { passive: true });
 
     const t0 = performance.now();
-    let last = t0, openAt = null, yaw = 0, pitch = 0;
+    let scroll = 0;
     const frame = (now) => {
       requestAnimationFrame(frame);
-      if (!visible || document.hidden) { last = now; return; }
-      const dt = Math.min(.033, (now - last) / 1000); last = now;
-      const t = reduce ? 3 : (now - t0) / 1000;
-
-      if (openAt === null && document.body.classList.contains('open')) openAt = now;
-      const gather = openAt === null ? 0 : Math.min(1, (now - openAt) / 2200);
-      const k = 16 * gather * gather;
-
-      // размер сердца под экран и «удар сердца»
-      const base = Math.min(world.aspect * 1.7, 1.42);
-      const beat = 1 + .05 * Math.pow(Math.max(0, Math.sin(t * 2.6)), 10) * (reduce ? 0 : 1);
-      const scale = base * beat;
-      const ty = world.aspect < .8 ? .12 : .02;       // чуть выше центра, под имена
-
-      const targetYaw = reduce ? 0 : .6 * Math.sin(t * .42) + (ptr.on ? ptr.nx * .55 : 0);
-      const targetPitch = ptr.on ? -ptr.ny * .3 : .05 * Math.sin(t * .3);
-      yaw += (targetYaw - yaw) * Math.min(1, dt * 3);
-      pitch += (targetPitch - pitch) * Math.min(1, dt * 3);
-      const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-
-      const data = new Float32Array(N * 4);
-      for (let i = 0; i < N; i++) {
-        // целевая точка на контуре (внешняя нить течёт по часовой, внутренняя — навстречу)
-        const outer = i < OUTER;
-        const idx = outer ? i : i - OUTER;
-        const cnt = outer ? OUTER : INNER;
-        const s = outer ? idx / cnt + t * .018 : idx / cnt - t * .026;
-        const [hx, hy] = onHeart(s);
-        const sc = outer ? scale : scale * .6;
-        let x = hx * sc, y = hy * sc + ty;
-        let z = (outer ? .09 : .16) * Math.sin(s * Math.PI * 2 * (outer ? 5 : 3) + t * 1.4);
-        // поворот: yaw вокруг Y, затем pitch вокруг X
-        const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
-        const y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
-        T[i * 3] = x1; T[i * 3 + 1] = y1; T[i * 3 + 2] = z2;
-
-        let px = P[i * 3], py = P[i * 3 + 1], pz = P[i * 3 + 2];
-        let vx = V[i * 3], vy = V[i * 3 + 1], vz = V[i * 3 + 2];
-        let ax = (x1 - px) * k - vx * (3 + 4 * gather), ay = (y1 - py) * k - vy * (3 + 4 * gather), az = (z2 - pz) * k - vz * (3 + 4 * gather);
-        if (ptr.on) {                                  // курсор отталкивает жемчуг
-          const dx = px - ptr.x, dy = py - ptr.y, d = Math.hypot(dx, dy) + 1e-4;
-          if (d < .55) { const f = (.55 - d) * (.55 - d) * 90 / d; ax += dx * f; ay += dy * f; az -= f * .05; }
-        }
-        vx += ax * dt; vy += ay * dt; vz += az * dt;
-        px += vx * dt; py += vy * dt; pz += vz * dt;
-        P[i * 3] = px; P[i * 3 + 1] = py; P[i * 3 + 2] = pz;
-        V[i * 3] = vx; V[i * 3 + 1] = vy; V[i * 3 + 2] = vz;
-        data[i * 4] = px; data[i * 4 + 1] = py; data[i * 4 + 2] = pz; data[i * 4 + 3] = radius[i] * (.9 + .1 * Math.min(1, gather * 3));
-      }
-
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      gl.uniform1f(uTime, t);
-      gl.uniform4fv(uS, data);
+      if (document.hidden) return;
+      const dx = m.tx - m.x, dy = m.ty - m.y;
+      m.x += dx * .12; m.y += dy * .12;
+      m.push += (Math.min(1.6, Math.hypot(dx, dy) * 14) - m.push) * .08;
+      scroll += (scrollY / innerHeight - scroll) * .08;
+      gl.uniform2f(u.res, canvas.width, canvas.height);
+      gl.uniform1f(u.time, reduce ? 12 : (now - t0) / 1000);
+      gl.uniform1f(u.scroll, scroll * .6);
+      gl.uniform1f(u.push, m.push);
+      gl.uniform2f(u.mouse, m.x, m.y);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
     requestAnimationFrame(frame);
   })();
 
-  let ticking = false;
-  function parallax() {
-    ticking = false;
-    const vh = innerHeight;
-    for (const f of floaters) {
-      const r = f.el.parentElement.getBoundingClientRect();
-      if (r.bottom < -100 || r.top > vh + 100) continue;
-      f.el.style.transform = `translate3d(0, ${((r.top + r.height / 2 - vh / 2) * -f.speed).toFixed(1)}px, 0)`;
+  /* ------------------------------------------------------------------ */
+  /* Снегопад                                                            */
+  /* ------------------------------------------------------------------ */
+  (() => {
+    const host = $('#petals');
+    const n = innerWidth < 600 ? 26 : 44;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      const size = 3 + Math.random() * Math.random() * 9;
+      p.style.cssText = `--x:${(Math.random() * 100).toFixed(1)}%;--s:${size.toFixed(1)}px;--b:${(size > 8 ? 1.2 : 0).toFixed(1)}px;` +
+        `--dur:${(11 + (14 - size) * 1.1 + Math.random() * 8).toFixed(1)}s;--delay:${(-Math.random() * 26).toFixed(1)}s;` +
+        `--drift:${Math.round((Math.random() - .5) * 200)}px;--sway:${Math.round(20 + Math.random() * 40)}px`;
+      host.appendChild(p);
     }
-  }
-  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(parallax); } }, { passive: true });
+  })();
 
+  /* ------------------------------------------------------------------ */
+  /* Появление: «рукописные» строки, поочерёдные дети                    */
+  /* ------------------------------------------------------------------ */
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }), { rootMargin: '0px 0px -10% 0px', threshold: .08 });
-  $$('.rv').forEach(el => io.observe(el));
+
+  $$('.write').forEach(el => {
+    el.style.setProperty('--dur', Math.min(3.4, Math.max(.9, .45 + el.textContent.trim().length * .13)).toFixed(2) + 's');
+  });
+  $$('section').forEach(sec => {
+    let t = sec.id === 'cover' ? 1.5 : .15;
+    $$('.write', sec).forEach((el, i) => {
+      if (i < 3) {
+        el.style.setProperty('--delay', t.toFixed(2) + 's');
+        t += parseFloat(el.style.getPropertyValue('--dur')) * .8 + .1;
+      } else el.style.setProperty('--delay', '.3s');
+    });
+  });
+  $$('.stagger').forEach(p => [...p.children].forEach((c, i) => c.style.setProperty('--i', i)));
+  $$('.rv, .write, .stagger, .timeline').forEach(el => io.observe(el));
 
   /* ------------------------------------------------------------------ */
   /* Обратный отсчёт                                                     */
@@ -467,12 +402,11 @@
     const m = Math.floor(s / 60); s %= 60;
     $('#cd-d').textContent = d; $('#cd-h').textContent = pad(h);
     $('#cd-m').textContent = pad(m); $('#cd-s').textContent = pad(s);
-    if (date <= Date.now()) $('.until').textContent = 'Этот день настал!';
   }
   tick(); setInterval(tick, 1000);
 
   /* ------------------------------------------------------------------ */
-  /* Музыка (мягкий пэд + «жемчужные» колокольчики, без файлов)          */
+  /* Музыка (мягкий пэд + колокольчики, без файлов)                      */
   /* ------------------------------------------------------------------ */
   const sound = $('#sound');
   let actx, master, bellTimer, playing = false;
@@ -485,8 +419,6 @@
     const wet = actx.createGain(); wet.gain.value = .5;
     master.connect(lp); lp.connect(actx.destination);
     lp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(actx.destination);
-
-    // Dmaj9: D3 A3 D4 F#4 A4 E5
     [146.83, 220, 293.66, 369.99, 440, 659.25].forEach((f, i) => {
       [-4, 4].forEach(det => {
         const o = actx.createOscillator(); o.type = i % 2 ? 'sine' : 'triangle';
@@ -501,9 +433,8 @@
     });
   }
   function bell() {
-    const notes = [587.33, 659.25, 739.99, 880, 987.77, 1108.73, 1318.51]; // D-пентатоника
-    const f = notes[Math.floor(Math.random() * notes.length)];
-    const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const notes = [587.33, 659.25, 739.99, 880, 987.77, 1108.73, 1318.51];
+    const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = notes[Math.floor(Math.random() * notes.length)];
     const g = actx.createGain(), t = actx.currentTime;
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(.12, t + .02);
@@ -530,7 +461,7 @@
   });
 
   /* ------------------------------------------------------------------ */
-  /* Интро-конверт                                                       */
+  /* Интро: развязываем бант, открываем конверт                          */
   /* ------------------------------------------------------------------ */
   const intro = $('#intro');
   let opened = false;
@@ -543,13 +474,12 @@
       document.body.classList.add('open');
       intro.classList.add('done');
       scrollTo(0, 0);
-    }, 1900);
-    setTimeout(() => intro.remove(), 3300);
+    }, 2800);
+    setTimeout(() => intro.remove(), 4200);
   }
-  $('#seal').addEventListener('click', openEnvelope);
+  $('#bow').addEventListener('click', (e) => { e.stopPropagation(); openEnvelope(); });
   intro.addEventListener('click', openEnvelope);
 
-  // если пришли по якорю / перезагрузили страницу — сразу показываем сайт
   if (location.hash && location.hash !== '#') {
     document.body.classList.remove('locked');
     document.body.classList.add('open');
@@ -588,12 +518,4 @@
       err.textContent = 'Не удалось отправить. Попробуйте ещё раз или напишите нам напрямую.';
     }
   });
-
-  /* ------------------------------------------------------------------ */
-  scatter();
-  renderStrands();
-  parallax();
-  let rt;
-  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderStrands, 120); });
-  document.fonts?.ready.then(renderStrands);
 })();
