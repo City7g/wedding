@@ -107,14 +107,6 @@
   </div>
 
   <!-- ===================== САЙТ ===================== -->
-  <button class="sound" id="sound" type="button" aria-label="Включить музыку" aria-pressed="false">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/>
-      <g class="waves"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g>
-      <path class="mute-x" d="M16 9.5l4 5M20 9.5l-4 5"/>
-    </svg>
-  </button>
-
   <main class="column" id="top">
 
     <!-- 1. Главный экран -->
@@ -146,6 +138,7 @@
       <figure class="photo" id="photo">
         <div class="photo-wrap">
           <div class="photo-frame"><img id="photoImg" alt="Дима и Наталья" decoding="async"></div>
+          <i class="photo-corner tl"></i><i class="photo-corner tr"></i><i class="photo-corner bl"></i><i class="photo-corner br"></i>
         </div>
         <figcaption class="script rv">мы ждём вас</figcaption>
       </figure>
@@ -214,7 +207,6 @@
     </section>
   </main>
 
-  <script src="./src/config.js"></script>
-  <script src="./src/main.ts"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

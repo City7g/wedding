@@ -1,8 +1,10 @@
-/* ============================================================
-   Всё, что нужно поменять под себя, — здесь.
-   Остальные файлы (index.html, style.css, script.js) трогать не нужно.
-   ============================================================ */
-window.WEDDING = {
+/*
+ * Всё, что нужно поменять под себя, — здесь.
+ * Остальные файлы трогать не нужно.
+ */
+import type { WeddingConfig } from './config.types';
+
+export const config: WeddingConfig = {
   groom: 'Дима',
   bride: 'Натали',
 
@@ -34,8 +36,8 @@ window.WEDDING = {
   rsvp: {
     deadline: '1 декабря',
     // Куда приходят ответы гостей (любой из вариантов, можно несколько):
-    endpoint: '',  // URL веб-приложения Google Apps Script (см. apps-script/Code.gs) — ответы пойдут в таблицу
-    telegram: '',  // ваш ник в Telegram без @ — откроется чат с готовым ответом
-    email: '',     // почта — откроется письмо с готовым ответом
+    endpoint: 'https://script.google.com/macros/s/AKfycbxwx_4QQu421uEHQLed5aBJ_gtBBa0EAIRne7-nkxkyga2FPMrFrANLUVRlY6oRq45vBA/exec', // URL веб-приложения Google Apps Script (см. apps-script/Code.gs) — ответы пойдут в таблицу
+    telegram: '', // ваш ник в Telegram без @ — откроется чат с готовым ответом
+    email: '',    // почта — откроется письмо с готовым ответом
   },
 };

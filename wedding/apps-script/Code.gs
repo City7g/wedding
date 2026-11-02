@@ -1,11 +1,12 @@
 /**
  * Принимает ответы гостей с сайта и дописывает их в таблицу.
- * Вставьте этот код в таблице: Расширения → Apps Script, затем
+ * Вставьте этот код в таблице: Расширения → Apps Script (отдельным файлом, +  → Скрипт), затем
  * Развернуть → Новое развертывание → Веб-приложение:
  *   «Выполнять от имени» — Я, «У кого есть доступ» — Все.
- * Полученный URL (…/exec) вставьте в wedding/src/config.js → rsvp.endpoint.
+ * Полученный URL (…/exec) вставьте в wedding/src/config.ts → rsvp.endpoint.
  */
-const SHEET_NAME = 'Ответы на форму';
+const RSVP_SHEET_NAME = 'Ответы на форму';
+const SPREADSHEET_ID = '1C97hb99ACgxe47MLXBG1ghPegtrFXTOa5HHIrrR4Obs';
 
 // По желанию: мгновенные уведомления в Telegram (создайте бота у @BotFather,
 // напишите ему любое сообщение и вставьте токен и свой chat id). Пусто — не отправлять.
@@ -19,8 +20,8 @@ function doPost(e) {
   const note = String(p.note || '').slice(0, 1000);
   if (!name || !presence) return ContentService.createTextOutput('bad request');
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(RSVP_SHEET_NAME) || ss.insertSheet(RSVP_SHEET_NAME);
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
