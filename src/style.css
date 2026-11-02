@@ -433,3 +433,7 @@ body:not(.open) .draw .full { animation: none !important; }
 .form .btn.solid:active { transform: translateY(0) scale(.99); }
 .form .btn.solid:disabled { opacity: .6; cursor: default; }
 .form-error { border-radius: 10px; }
+
+body > iframe {
+  display: none !important;
+}
