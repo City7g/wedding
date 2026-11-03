@@ -35,9 +35,36 @@ export function fillContent(config: WeddingConfig, bindings: Bindings): void {
   }
   document.title = `${config.groom} & ${config.bride} — приглашение на свадьбу`;
 
+  fillCalendar(config);
   fillTimeline(config);
   fillPhoto(config);
   fillContactLink(config);
+}
+
+const MONTHS = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+];
+const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+
+/** Календарь месяца свадьбы (неделя с понедельника), день свадьбы — в сердечке. */
+function fillCalendar({ date }: WeddingConfig): void {
+  const wedding = new Date(date);
+  const year = wedding.getFullYear();
+  const month = wedding.getMonth();
+  const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const blanks = Array.from({ length: offset }, () => '<span></span>');
+  const days = Array.from({ length: daysInMonth }, (_, i) =>
+    i + 1 === wedding.getDate() ? `<span class="day on"><b>${i + 1}</b></span>` : `<span class="day">${i + 1}</span>`);
+
+  $('#calendar').innerHTML = `
+    <h3 class="cal-month">${MONTHS[month]}</h3>
+    <div class="cal-grid">
+      ${WEEKDAYS.map((d) => `<span class="wd">${d}</span>`).join('')}
+      ${[...blanks, ...days].join('')}
+    </div>`;
 }
 
 function fillTimeline({ timeline }: WeddingConfig): void {
