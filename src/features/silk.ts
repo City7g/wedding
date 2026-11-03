@@ -27,10 +27,17 @@ export function startSilk(): void {
   const uDark = uniform('uDark');
   const uMouse = uniform('uMouse');
 
+  // Размеры берём у самого холста: его высота (lvh) не прыгает вместе с адресной строкой,
+  // в отличие от innerHeight. Буфер пересоздаём, только если размер реально изменился.
+  let width = 0;
+  let height = 0;
   function resize(): void {
+    if (canvas.clientWidth === width && canvas.clientHeight === height) return;
+    width = canvas.clientWidth;
+    height = canvas.clientHeight;
     const scale = Math.min(devicePixelRatio || 1, 1.5) * RESOLUTION_SCALE;
-    canvas.width = Math.max(2, Math.round(innerWidth * scale));
-    canvas.height = Math.max(2, Math.round(innerHeight * scale));
+    canvas.width = Math.max(2, Math.round(width * scale));
+    canvas.height = Math.max(2, Math.round(height * scale));
     gl.viewport(0, 0, canvas.width, canvas.height);
   }
   resize();
@@ -39,8 +46,8 @@ export function startSilk(): void {
   // Курсор: цель и плавно догоняющее её значение, оба в диапазоне [-.5, .5].
   const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
   addEventListener('pointermove', (event) => {
-    mouse.targetX = event.clientX / innerWidth - 0.5;
-    mouse.targetY = 0.5 - event.clientY / innerHeight;
+    mouse.targetX = event.clientX / width - 0.5;
+    mouse.targetY = 0.5 - event.clientY / height;
   }, { passive: true });
 
   let scroll = 0;
@@ -50,10 +57,10 @@ export function startSilk(): void {
   onFrame((now) => {
     mouse.x += (mouse.targetX - mouse.x) * 0.04;
     mouse.y += (mouse.targetY - mouse.y) * 0.04;
-    scroll += (scrollY / innerHeight - scroll) * 0.08;
+    scroll += (scrollY / height - scroll) * 0.08;
 
     // Чем ближе финальный экран, тем темнее ткань.
-    const finaleProgress = 1 - finale.getBoundingClientRect().top / innerHeight;
+    const finaleProgress = 1 - finale.getBoundingClientRect().top / height;
     const targetDarkness = Math.min(1, Math.max(0, finaleProgress)) * MAX_DARKNESS;
     darkness += (targetDarkness - darkness) * 0.05;
 

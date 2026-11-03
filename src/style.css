@@ -24,9 +24,10 @@ body.locked { overflow: hidden; height: 100svh; }
 b { font-weight: 500; }
 [data-bind=deadline] { white-space: nowrap; }
 
+/* Высота по lvh не меняется, когда на телефоне прячется или появляется адресная строка. */
 #silk {
-  position: fixed; inset: 0; width: 100%; height: 100%;
-  z-index: 0; display: block;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; height: 100lvh;
+  z-index: 0; display: block; pointer-events: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -84,6 +85,7 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .hero {
   min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center;
   padding-bottom: 150px;
+  padding-top: 40px;
 }
 .names {
   font-family: var(--serif); font-weight: 300; text-transform: uppercase;
@@ -114,7 +116,6 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   border-radius: 50% / 64px;
   padding: 104px 34px 112px;
   margin: 0;
-  box-shadow: 0 20px 60px rgba(60, 8, 20, .22);
   overflow: hidden;
 }
 .panel::before {
@@ -122,7 +123,7 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   border-radius: 50% / 64px 64px 0 0; border: 1px solid rgba(109, 26, 44, .35); border-bottom: 0;
   transform: translateY(10px); width: calc(100% - 0px);
 }
-.panel + .panel { margin-top: -50px; }
+.panel + .panel { margin-top: 50px; }
 .panel.sand { background: var(--sand); }
 .panel.glass {
   background: rgba(251, 242, 212, .72);
@@ -145,10 +146,10 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; justify-items: center; align-items: center; }
 .cal-grid .wd { font-size: 11px; font-style: italic; text-transform: uppercase; color: var(--ink-soft); opacity: .75; margin-bottom: 8px; }
 .cal-grid .day { display: grid; place-items: center; width: 100%; height: 40px; font-size: 14px; color: var(--ink-soft); }
-.cal-grid .day.on { position: relative; color: var(--ink); }
+.cal-grid .day.on { position: relative; color: #fff7d8; }
 .cal-grid .day.on::before {
   content: ''; position: absolute; width: 58px; height: 52px; z-index: 0;
-  background: rgba(181, 84, 106, .38);
+  background: #8e1f36; transform: translateY(3px) scale(.82);
   clip-path: path('M29 51 C 8 36, 0 26, 0 15 C 0 6, 7 0, 15 0 C 21 0, 26 3, 29 8 C 32 3, 37 0, 43 0 C 51 0, 58 6, 58 15 C 58 26, 50 36, 29 51 Z');
 }
 .cal-grid .day.on b { position: relative; z-index: 1; font-weight: 700; font-size: 15px; }
@@ -207,6 +208,12 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .timeline time { display: block; font-family: var(--serif); font-style: italic; font-size: 34px; line-height: 1.1; }
 .timeline strong { display: block; margin-top: 6px; font-weight: 500; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
 .timeline p { margin-top: 6px; font-size: 13px; line-height: 1.6; opacity: .88; max-width: 280px; }
+
+/* Детали — в стиле «Тайминга»: светлый текст прямо на шёлке */
+.details { padding: 130px 34px 130px; }
+.light .lead { color: var(--light); }
+.light .btn { color: var(--light); border-color: rgba(251, 238, 196, .7); }
+.light .btn:hover { background: var(--light); color: var(--ink); }
 
 /* ------------------------------------------------------------------ */
 /* Форма                                                               */
@@ -373,7 +380,7 @@ body:not(.open) .rv { opacity: 0 !important; }
 .photo-corner.tl::after { top: -4px; left: -4px; } .photo-corner.tr::after { top: -4px; right: -4px; }
 .photo-corner.bl::after { bottom: -4px; left: -4px; } .photo-corner.br::after { bottom: -4px; right: -4px; }
 .photo figcaption { margin-top: 40px; transition-delay: 1.9s; }
-#rsvp { margin-top: 64px; }
+
 @media (prefers-reduced-motion: reduce) {
   .photo-frame, .photo-frame img, .photo-wrap::before, .photo-corner { transition-duration: .01s !important; transition-delay: 0s !important; animation-duration: .01s !important; animation-delay: 0s !important; }
 }
