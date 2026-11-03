@@ -6,7 +6,9 @@ import { prefersReducedMotion } from '../lib/utils';
 import { createFullscreenPass, drawFullscreen } from '../lib/webgl';
 
 /** Шёлк плавный, поэтому считаем его в пониженном разрешении. */
-const RESOLUTION_SCALE = 0.55;
+const RESOLUTION_SCALE = 0.45;
+/** И двигается медленно, поэтому хватает 30 кадров в секунду. */
+const FRAME_INTERVAL_MS = 1000 / 30;
 /** Насколько шёлк темнеет к финальному экрану. */
 const MAX_DARKNESS = 0.38;
 
@@ -53,8 +55,12 @@ export function startSilk(): void {
   let scroll = 0;
   let darkness = 0;
   const startedAt = performance.now();
+  let lastDrawn = 0;
 
   onFrame((now) => {
+    if (document.hidden || now - lastDrawn < FRAME_INTERVAL_MS - 2) return;
+    lastDrawn = now;
+
     mouse.x += (mouse.targetX - mouse.x) * 0.04;
     mouse.y += (mouse.targetY - mouse.y) * 0.04;
     scroll += (scrollY / height - scroll) * 0.08;

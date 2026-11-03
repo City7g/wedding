@@ -16,8 +16,6 @@ export function buildBindings(config: WeddingConfig): Bindings {
   return {
     groom: config.groom,
     bride: config.bride,
-    groomInitial: config.groom[0],
-    brideInitial: config.bride[0],
     orgName: config.organizer.name,
     deadline: config.rsvp.deadline,
     venueName: config.venue.name,

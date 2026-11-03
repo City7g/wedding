@@ -1,15 +1,15 @@
 /**
  * Жемчужное сердце на первом экране.
  *
- * Жемчужины рисует шейдер (pearls.frag), а их движение считается здесь, на CPU:
- * нить течёт по контуру сердца, отталкивается от курсора или пальца,
- * «бьётся», а по клику рассыпается и собирается снова.
+ * Движение каждой жемчужины считается здесь, на CPU: нить течёт по контуру сердца,
+ * отталкивается от курсора или пальца, «бьётся», а по клику рассыпается и собирается снова.
+ * Рисуется это дёшево: одна заранее нарисованная «спрайтовая» жемчужина и её тень
+ * масштабируются в 2D-канвасе по перспективе — без шейдеров и без расчёта по каждому пикселю.
  */
-import fragmentSource from '../shaders/pearls.frag?raw';
 import { $ } from '../lib/dom';
 import { onFrame } from '../lib/frameLoop';
 import { prefersReducedMotion } from '../lib/utils';
-import { createFullscreenPass, drawFullscreen } from '../lib/webgl';
+import { siteOpened } from './intro';
 
 const OUTER_COUNT = 60;
 const INNER_COUNT = 26;
@@ -17,8 +17,14 @@ const PEARL_COUNT = OUTER_COUNT + INNER_COUNT;
 const OUTER_RADIUS = 0.05;
 const INNER_RADIUS = 0.037;
 
-/** Половина высоты видимой области на плоскости z = 0 (камера в z = -3, фокус 1.6). */
-const VIEW_HALF_HEIGHT = 1.875;
+/** Камера стоит в z = -3, фокус 1.6: половина высоты видимой области на плоскости z = 0 — 3 / 1.6. */
+const CAMERA_Z = 3;
+const FOCAL = 1.6;
+const VIEW_HALF_HEIGHT = CAMERA_Z / FOCAL;
+/** Размер спрайта жемчужины в пикселях (с запасом под retina). */
+const SPRITE_SIZE = 96;
+/** Смещение тени жемчужины на «шёлк» (в мировых единицах: вправо и вниз). */
+const SHADOW_OFFSET: Point = [0.045, 0.075];
 /** Жемчужины собираются в сердце за столько миллисекунд после открытия конверта. */
 const GATHER_MS = 2200;
 /** Радиус, в котором курсор отталкивает жемчужины. */
@@ -71,27 +77,76 @@ function pointOnHeart(progress: number): Point {
 }
 
 // ---------------------------------------------------------------------------
+// Спрайты: жемчужина и мягкая тень рисуются один раз.
+// ---------------------------------------------------------------------------
+
+function makeSprite(size: number, paint: (context: CanvasRenderingContext2D, size: number) => void): HTMLCanvasElement {
+  const sprite = document.createElement('canvas');
+  sprite.width = sprite.height = size;
+  paint(sprite.getContext('2d')!, size);
+  return sprite;
+}
+
+function makePearlSprite(): HTMLCanvasElement {
+  return makeSprite(SPRITE_SIZE, (context, size) => {
+    const radius = size / 2;
+    context.beginPath();
+    context.arc(radius, radius, radius - 0.5, 0, Math.PI * 2);
+    context.clip();
+
+    // Основной цвет: свет падает сверху-слева (те же оттенки, что у жемчужин на конверте).
+    const body = context.createRadialGradient(size * 0.34, size * 0.3, 0, size * 0.34, size * 0.3, size * 0.78);
+    body.addColorStop(0, '#fffdf0');
+    body.addColorStop(0.28, '#fbf0cc');
+    body.addColorStop(0.65, '#ead29a');
+    body.addColorStop(1, '#b8975a');
+    context.fillStyle = body;
+    context.fillRect(0, 0, size, size);
+
+    // Розоватый отсвет «шёлка» снизу-справа.
+    const bounce = context.createRadialGradient(size * 0.72, size * 0.86, 0, size * 0.72, size * 0.86, size * 0.5);
+    bounce.addColorStop(0, 'rgba(217, 110, 120, .4)');
+    bounce.addColorStop(1, 'rgba(217, 110, 120, 0)');
+    context.fillStyle = bounce;
+    context.fillRect(0, 0, size, size);
+
+    // Блик.
+    const glint = context.createRadialGradient(size * 0.33, size * 0.27, 0, size * 0.33, size * 0.27, size * 0.14);
+    glint.addColorStop(0, 'rgba(255, 255, 255, .95)');
+    glint.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    context.fillStyle = glint;
+    context.fillRect(0, 0, size, size);
+  });
+}
+
+function makeShadowSprite(): HTMLCanvasElement {
+  return makeSprite(SPRITE_SIZE, (context, size) => {
+    const shadow = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    shadow.addColorStop(0, 'rgba(26, 1, 8, .34)');
+    shadow.addColorStop(0.45, 'rgba(26, 1, 8, .2)');
+    shadow.addColorStop(1, 'rgba(26, 1, 8, 0)');
+    context.fillStyle = shadow;
+    context.fillRect(0, 0, size, size);
+  });
+}
+
+// ---------------------------------------------------------------------------
 
 export function startPearlHeart(): void {
   const canvas = $<HTMLCanvasElement>('#pearl3d');
   const hero = $('#hero');
-  const pass = createFullscreenPass(canvas, `#define N ${PEARL_COUNT}\n${fragmentSource}`, {
-    antialias: false,
-    alpha: true,
-    premultipliedAlpha: true,
-  });
-  if (!pass) return;
+  const context = canvas.getContext('2d');
+  if (!context) return;
 
-  const { gl, uniform } = pass;
-  const uRes = uniform('uRes');
-  const uPearls = uniform('uS');
-  const uTime = uniform('uTime');
+  const pearlSprite = makePearlSprite();
+  const shadowSprite = makeShadowSprite();
 
   // Положение и скорость каждой жемчужины (x, y, z подряд). Сначала они разбросаны
   // над экраном и ждут, пока откроется конверт.
   const position = new Float32Array(PEARL_COUNT * 3);
   const velocity = new Float32Array(PEARL_COUNT * 3);
-  const shaderData = new Float32Array(PEARL_COUNT * 4);
+  const radii = new Float32Array(PEARL_COUNT);
+  const order = Array.from({ length: PEARL_COUNT }, (_, i) => i);
   for (let i = 0; i < PEARL_COUNT; i++) {
     position[i * 3] = (Math.random() - 0.5) * 5;
     position[i * 3 + 1] = 2.2 + Math.random() * 2.5;
@@ -107,7 +162,6 @@ export function startPearlHeart(): void {
     const dpr = Math.min(devicePixelRatio || 1, 2);
     canvas.width = Math.max(2, Math.round(width * dpr));
     canvas.height = Math.max(2, Math.round(height * dpr));
-    gl.viewport(0, 0, canvas.width, canvas.height);
     aspect = width / height;
   }
   resize();
@@ -148,9 +202,11 @@ export function startPearlHeart(): void {
     }
   }
 
-  // Не считаем и не рисуем, пока первый экран не виден.
+  // Не считаем и не рисуем, пока первый экран не виден или конверт ещё закрыт.
   let heroVisible = true;
   new IntersectionObserver(([entry]) => { heroVisible = entry.isIntersecting; }).observe(hero);
+  let opened = false;
+  void siteOpened.then(() => { opened = true; });
 
   const startedAt = performance.now();
   let lastFrame = startedAt;
@@ -159,7 +215,7 @@ export function startPearlHeart(): void {
   let pitch = 0;
 
   onFrame((now) => {
-    if (!heroVisible || document.hidden) {
+    if (!opened || !heroVisible || document.hidden) {
       lastFrame = now;
       return;
     }
@@ -168,7 +224,7 @@ export function startPearlHeart(): void {
     const t = prefersReducedMotion ? 3 : (now - startedAt) / 1000;
 
     // Пока конверт закрыт, жемчуг «заморожен»; после открытия плавно собирается.
-    if (openedAt === null && document.body.classList.contains('open')) openedAt = now;
+    if (openedAt === null) openedAt = now;
     const gather = openedAt === null ? 0 : Math.min(1, (now - openedAt) / GATHER_MS);
     const spring = 16 * gather * gather;
     const damping = 3 + 4 * gather;
@@ -232,18 +288,38 @@ export function startPearlHeart(): void {
       position[i * 3] = px; position[i * 3 + 1] = py; position[i * 3 + 2] = pz;
       velocity[i * 3] = vx; velocity[i * 3 + 1] = vy; velocity[i * 3 + 2] = vz;
 
-      const radius = outer ? OUTER_RADIUS : INNER_RADIUS;
-      shaderData[i * 4] = px;
-      shaderData[i * 4 + 1] = py;
-      shaderData[i * 4 + 2] = pz;
-      shaderData[i * 4 + 3] = radius * (0.9 + 0.1 * Math.min(1, gather * 3));
+      radii[i] = (outer ? OUTER_RADIUS : INNER_RADIUS) * (0.9 + 0.1 * Math.min(1, gather * 3));
     }
 
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(uRes, canvas.width, canvas.height);
-    gl.uniform1f(uTime, t);
-    gl.uniform4fv(uPearls, shaderData);
-    drawFullscreen(gl);
+    draw();
   });
+
+  /** Перспективная проекция: мировая точка → пиксели холста (так же, как считала камера шейдера). */
+  function draw(): void {
+    const { width, height } = canvas;
+    context!.clearRect(0, 0, width, height);
+
+    // Сначала все тени, потом жемчужины от дальних к ближним.
+    order.sort((a, b) => position[b * 3 + 2] - position[a * 3 + 2]);
+    const pixelsPerUnit = height / 2 * FOCAL;
+
+    for (const i of order) {
+      const depth = position[i * 3 + 2] + CAMERA_Z;
+      const k = pixelsPerUnit / depth;
+      const x = width / 2 + position[i * 3] * k;
+      const y = height / 2 - position[i * 3 + 1] * k;
+      const size = radii[i] * k * 2;
+      if (x < -size || x > width + size || y < -size || y > height + size) continue;
+      context!.drawImage(shadowSprite, x + SHADOW_OFFSET[0] * k - size * 1.05, y + SHADOW_OFFSET[1] * k - size * 1.05, size * 2.1, size * 2.1);
+    }
+    for (const i of order) {
+      const depth = position[i * 3 + 2] + CAMERA_Z;
+      const k = pixelsPerUnit / depth;
+      const x = width / 2 + position[i * 3] * k;
+      const y = height / 2 - position[i * 3 + 1] * k;
+      const size = radii[i] * k * 2;
+      if (x < -size || x > width + size || y < -size || y > height + size) continue;
+      context!.drawImage(pearlSprite, x - size / 2, y - size / 2, size, size);
+    }
+  }
 }

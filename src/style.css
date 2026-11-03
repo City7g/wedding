@@ -38,9 +38,9 @@ b { font-weight: 500; }
   background: radial-gradient(circle at 34% 30%, #fffdf0 0, #fbf0cc 26%, #ead29a 64%, #b8975a 100%);
   box-shadow: 0 3px 6px rgba(60, 10, 20, .28), inset -1px -2px 3px rgba(110, 60, 20, .25);
 }
-.pearls, .flap-pearls { position: relative; pointer-events: none; }
+.pearls { position: relative; pointer-events: none; }
 .pearls { height: 90px; margin: 10px -40px 14px; }
-.pearls svg, .flap-pearls svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60, 10, 20, .3)); }
+.pearls svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60, 10, 20, .3)); }
 
 .scatter { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .scatter u { position: absolute; display: block; will-change: transform; }
@@ -268,46 +268,38 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .btn.rv:not(.in) { transition: none; }
 
 /* ------------------------------------------------------------------ */
-/* Интро-конверт                                                       */
+/* Интро: письмо посреди экрана. По нажатию летит на зрителя и растворяется */
 /* ------------------------------------------------------------------ */
-#intro {
-  position: fixed; inset: 0; z-index: 50; overflow: hidden; perspective: 1400px;
-  background: #f1dd9a;
+#intro { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; }
+.letter {
+  position: relative; width: min(86vw, 460px); aspect-ratio: 5 / 4; padding: 0; border: 0; background: none; cursor: pointer;
+  will-change: transform, opacity; -webkit-tap-highlight-color: transparent;
 }
-.env-body { position: absolute; inset: 0; background: linear-gradient(180deg, #f7e8b4, #efd98f); }
-.env-texture { position: absolute; inset: 0; }
-.env-texture .emboss { filter: drop-shadow(1.5px 1.5px 0 rgba(160, 110, 40, .3)); }
-.flap { position: absolute; left: 0; top: 0; width: 100%; height: 54%; transform-origin: top center; transform-style: preserve-3d; z-index: 2; }
-.flap-pearls { position: absolute; inset: 0; backface-visibility: hidden; }
-.seal {
-  position: absolute; z-index: 5; left: 50%; top: 54%; width: clamp(112px, 30vw, 150px); aspect-ratio: 1;
-  transform: translate(-50%, -50%); border: 0; background: none; cursor: pointer; padding: 0;
-  animation: sealPulse 2.8s ease-in-out infinite; -webkit-tap-highlight-color: transparent;
-  transition: opacity .5s, transform .5s var(--ease);
+.letter-paper {
+  position: absolute; inset: 0; overflow: hidden; border-radius: 6px;
+  background: linear-gradient(180deg, #f7e8b4, #efd98f);
+  box-shadow: 0 30px 60px rgba(40, 5, 15, .5), inset 0 0 0 1px rgba(184, 151, 90, .5);
 }
-.seal svg { width: 100%; height: 100%; overflow: visible; }
-.seal-mono { font: 500 58px var(--serif); fill: #f6e3a8; stroke: #2a0510; stroke-opacity: .55; stroke-width: .6; paint-order: stroke; }
-/* амперсанд мельче и курсивом, буквы — прямые: так вензель «Д&Н» не читается как «ДиН» */
-.seal-mono .mono-amp { font-style: italic; font-weight: 400; font-size: 38px; }
+.letter-paper svg { display: block; }
+/* Клапан: высота 54% письма, вершина вниз. Открывается переворотом вверх вокруг верхнего края. */
+.letter-flap { position: absolute; left: 0; top: 0; width: 100%; height: 54%; overflow: visible; transform-origin: 50% 0; pointer-events: none; }
+.letter-flap path { stroke-dasharray: 1 2; }
+.letter:focus-visible { outline: 2px dashed var(--light); outline-offset: 6px; }
+.seal { position: absolute; z-index: 2; left: 50%; top: 54%; width: 34%; aspect-ratio: 1; transform: translate(-50%, -50%); animation: sealPulse 2.8s ease-in-out infinite; }
+.seal svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 5px 6px rgba(42, 5, 16, .4)); }
+.seal-heart { fill: #f6e3a8; stroke: #2a0510; stroke-opacity: .5; stroke-width: .6; paint-order: stroke; }
 @keyframes sealPulse { 50% { transform: translate(-50%, -50%) scale(1.05); } }
-.seal:focus-visible { outline: 2px dashed var(--ink); outline-offset: 6px; border-radius: 50%; }
 .env-hint {
-  position: absolute; z-index: 4; left: 0; right: 0; bottom: max(40px, 7svh); text-align: center;
-  font: italic 400 21px var(--serif); color: #7d2236; animation: hint 2.8s ease-in-out infinite;
-  transition: opacity .4s;
+  position: absolute; left: 0; right: 0; bottom: max(40px, 7svh); text-align: center;
+  font: italic 400 21px var(--serif); color: var(--light); text-shadow: 0 2px 14px rgba(60, 8, 20, .6); animation: hint 2.8s ease-in-out infinite;
 }
 @keyframes hint { 50% { opacity: .45; } }
-.env-flash {
-  position: absolute; inset: 0; z-index: 6; opacity: 0; pointer-events: none;
-  background: radial-gradient(circle at 50% 40%, #fffbe8, #fbeec0 40%, #f4dc9a 100%);
-}
+#intro.opening { pointer-events: none; }
+#intro.opening .seal, #intro.opening .env-hint { animation: none; }
 
-/* Масштаб — внутри transform вместе со сдвигом: отдельное свойство scale тянуло бы и translate, и печать уезжала влево. */
-#intro.opening .seal { opacity: 0; transform: translate(-50%, -50%) scale(1.25); animation: none; pointer-events: none; }
-#intro.opening .env-hint { opacity: 0; }
-#intro.opening .flap { transform: rotateX(-180deg); transition: transform 1.3s .35s cubic-bezier(.6, .05, .2, 1); }
-#intro.opening .env-flash { opacity: 1; transition: opacity .9s 1s ease-in; }
-#intro.done { opacity: 0; visibility: hidden; transition: opacity 1s .1s, visibility 0s 1.2s; }
+/* Пока письмо закрыто, украшения главного экрана за ним не нужны: появляются вместе с сайтом. */
+.scatter { transition: opacity 1.2s; }
+body.locked .scatter { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .scatter i, .seal, .env-hint, .scroll-hint span { animation: none; }
@@ -322,7 +314,8 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .draw.amp { --fs: clamp(44px, 13vw, 66px); margin: -.1em 0; }
 .draw.num { --fs: clamp(72px, 21vw, 104px); }
 .draw.small { --fs: clamp(40px, 11vw, 54px); }
-.light .draw svg { filter: drop-shadow(0 2px 14px rgba(60, 8, 20, .5)); }
+/* Тень у надписи — только когда она дописана: пока перо пишет, фильтр пересчитывался бы на каждом кадре. */
+.light .draw.done svg { filter: drop-shadow(0 2px 14px rgba(60, 8, 20, .5)); }
 .hero-names { display: flex; flex-direction: column; align-items: center; margin: 16px 0 6px; line-height: 0; text-shadow: none; text-transform: none; letter-spacing: 0; font-size: 0; }
 .hero-date { margin-top: 6px; line-height: 0; }
 .datestack { display: flex; flex-direction: column; align-items: center; margin: 22px auto 0; color: #6d1a2c; }
@@ -334,8 +327,9 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 /* ------------------------------------------------------------------ */
 .photo { position: relative; width: min(76%, 280px); margin: 70px auto 0; }
 .photo[hidden] { display: none; }
-.photo-wrap { position: relative; filter: drop-shadow(0 18px 24px rgba(60, 8, 20, .32)); }
-.photo-ring { position: absolute; inset: -9px; border: 1px solid rgba(184, 151, 90, .8); opacity: 0; pointer-events: none; }
+.photo-wrap { position: relative; }
+/* Золотой контур заодно отбрасывает тень (box-shadow вместо тяжёлого drop-shadow: он не пересчитывается на каждом кадре раскрытия). */
+.photo-ring { position: absolute; inset: -9px; border: 1px solid rgba(184, 151, 90, .8); box-shadow: 0 18px 24px rgba(60, 8, 20, .32); opacity: 0; pointer-events: none; }
 .photo-frame {
   position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--sand);
   clip-path: circle(0% at 50% 58%);
@@ -358,7 +352,7 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .photo figcaption { margin-top: 40px; opacity: 0; }
 
 /* одна линия: перо вычерчивает центральную линию каждой буквы (ход пера — в drawText.ts, GSAP) */
-.draw .st { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+.draw .st, .draw .ink { stroke-dasharray: 1 2; stroke-dashoffset: 1; } /* «1 2»: пока штрих не начат, на его конце не остаётся точки от скруглённого края */
 .draw .dot, .draw .full { opacity: 0; }
 
 /* ------------------------------------------------------------------ */

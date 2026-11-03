@@ -21,12 +21,12 @@ export function play(animation: gsap.core.Animation): void {
   else animation.play();
 }
 
-/** Стандартное появление: поднимается снизу, проявляется и выходит из размытия. */
+/** Стандартное появление: поднимается снизу и проявляется (без blur — он тяжёлый для видеокарты). */
 function riseIn(elements: Element[]): void {
   const tween = gsap.fromTo(elements,
-    { opacity: 0, y: 26, filter: 'blur(6px)' },
+    { opacity: 0, y: 26 },
     {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.1, ease: 'power3.out',
+      opacity: 1, y: 0, duration: 1.1, ease: 'power3.out',
       stagger: STAGGER,
       // Своя пауза у блока — в data-delay (секунды).
       delay: (_, element: HTMLElement) => Number(element.dataset.delay ?? 0),

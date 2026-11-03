@@ -20,8 +20,8 @@ function initFigure(figure: HTMLElement): void {
       { clipPath: 'circle(0% at 50% 58%)' },
       { clipPath: 'circle(100% at 50% 50%)', duration: 2.2, ease: 'power3.out' }, 0.15)
     .fromTo($('img', frame),
-      { scale: 1.4, filter: 'blur(14px) saturate(0.4)' },
-      { scale: 1, filter: 'blur(0px) saturate(1)', duration: 3, ease: 'power2.out' }, 0.15)
+      { scale: 1.4 },
+      { scale: 1, duration: 3, ease: 'power2.out' }, 0.15)
     .fromTo($('.photo-ring', figure),
       { opacity: 0, scale: 0.93 },
       { opacity: 1, scale: 1, duration: 1.8, ease: 'power3.out' }, 1.1)
@@ -32,8 +32,8 @@ function initFigure(figure: HTMLElement): void {
   // Подпись есть не у каждого фото (у зала её нет).
   if (caption) {
     timeline.fromTo(caption,
-      { opacity: 0, y: 26, filter: 'blur(6px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.1, ease: 'power3.out' }, 1.9);
+      { opacity: 0, y: 26 },
+      { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out' }, 1.9);
   }
 
   reveal(figure, () => play(timeline));

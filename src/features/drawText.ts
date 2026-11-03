@@ -4,9 +4,9 @@
  * В разметке это элементы `<span class="draw name" data-src="groom">`: класс задаёт вид надписи
  * (см. DrawKind), data-src — что писать (ключ из Bindings или готовый текст), data-delay — пауза в секундах.
  *
- * Как это работает: текст настоящим шрифтом Great Vibes закрыт маской из центральных линий букв.
- * Линии вычерчиваются слева направо, и буквы проявляются ровно там, где прошло «перо».
- * В конце проявляется весь текст целиком — на случай тонких волосков, которые маска не покрыла.
+ * Как это работает: сначала «перо» вычерчивает тонкую линию — центральную линию каждой буквы (stroke-dasharray / stroke-dashoffset).
+ * Чуть позже за ней по тем же линиям проявляется настоящий шрифт Great Vibes (маска), «наливая» букву.
+ * В конце проявляется весь текст целиком — на случай тонких волосков, которые маска не покрыла, — а тонкая линия гаснет.
  */
 import { gsap } from 'gsap';
 import type { Bindings } from '../content';
@@ -34,6 +34,10 @@ const KINDS: Record<DrawKind, KindSettings> = {
 
 /** Пиксель текста считается «чернилами», если он плотнее этого порога (0–255). */
 const INK_THRESHOLD = 55;
+/** Толщина видимой линии пера относительно размера шрифта. */
+const INK_WIDTH = 0.028;
+/** На сколько секунд заливка букв отстаёт от пера. */
+const FILL_LAG = 0.5;
 /** Допуск упрощения линии штриха, в пикселях. */
 const SIMPLIFY_TOLERANCE = 1.3;
 /** Символы, которые нужно заранее загрузить в шрифт, помимо самих надписей. */
@@ -98,6 +102,7 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
   const penSpeed = fontSize * speed;
   let time = delay;
   let maskContent = '';
+  let inkContent = '';
 
   for (const { mark } of marks) {
     if (mark.kind === 'dot') {
@@ -107,7 +112,9 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
     } else {
       const duration = Math.max(0.12, mark.length / penSpeed);
       const path = toSmoothPath(simplify(mark.points, SIMPLIFY_TOLERANCE));
-      maskContent += `<path class="st" pathLength="1" d="${path}" data-d="${time.toFixed(2)}" data-t="${duration.toFixed(2)}"/>`;
+      const timing = `data-d="${time.toFixed(2)}" data-t="${duration.toFixed(2)}"`;
+      maskContent += `<path class="st" pathLength="1" d="${path}" ${timing}/>`;
+      inkContent += `<path class="ink" pathLength="1" d="${path}" ${timing}/>`;
       time += duration * 0.96; // следующий штрих начинается почти сразу: перо не «спотыкается» между буквами
     }
   }
@@ -123,6 +130,7 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
     `<g fill="none" stroke="#fff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${maskContent}</g>` +
     `</mask></defs>` +
     `<text ${textAttributes} mask="url(#${maskId})">${label}</text>` +
+    `<g class="inks" fill="none" stroke="currentColor" stroke-width="${(fontSize * INK_WIDTH).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round">${inkContent}</g>` +
     `<text class="full" ${textAttributes} data-d="${(time - 0.15).toFixed(2)}">${label}</text>` +
     `</svg>`;
 }
@@ -130,20 +138,23 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
 /** Расписание надписи: штрихи вычерчиваются, точки появляются, в конце проявляется весь текст. */
 function buildPenTimeline(element: Element): gsap.core.Timeline {
   const at = (target: Element) => Number(target.getAttribute('data-d'));
-  const timeline = gsap.timeline({ paused: true });
+  const timeline = gsap.timeline({ paused: true, onComplete: () => element.classList.add('done') });
 
-  for (const stroke of $$('.st', element)) {
-    timeline.fromTo(stroke, { strokeDashoffset: 1 }, {
-      strokeDashoffset: 0, duration: Number(stroke.getAttribute('data-t')), ease: 'none', // ровный ход пера
-    }, at(stroke));
-  }
+  const drawLine = (stroke: Element, start: number) => timeline.fromTo(stroke, { strokeDashoffset: 1 }, {
+    strokeDashoffset: 0, duration: Number(stroke.getAttribute('data-t')), ease: 'none', // ровный ход пера
+  }, start);
+
+  for (const stroke of $$('.ink', element)) drawLine(stroke, at(stroke));
+  for (const stroke of $$('.st', element)) drawLine(stroke, at(stroke) + FILL_LAG);
   for (const dot of $$('.dot', element)) {
     timeline.fromTo(dot, { opacity: 0, scale: 0.2, transformOrigin: '50% 50%' }, {
       opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out',
-    }, at(dot));
+    }, at(dot) + FILL_LAG);
   }
   const full = $('.full', element);
-  timeline.fromTo(full, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: 'sine.inOut' }, at(full));
+  timeline
+    .fromTo(full, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: 'sine.inOut' }, at(full) + FILL_LAG)
+    .to($('.inks', element), { opacity: 0, duration: 0.8, ease: 'sine.inOut' }, at(full) + FILL_LAG);
 
   return timeline;
 }
