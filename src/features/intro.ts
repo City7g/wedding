@@ -1,9 +1,9 @@
 /**
- * Заставка: письмо посреди экрана. По нажатию сперва открывается клапан (линия клапана откидывается вверх),
+ * Заставка: письмо посреди экрана. По нажатию сперва открывается конверт (клапан разворачивается на 180° и остаётся открытым, из конверта выезжает открытка),
  * а чуть позже письмо сильно увеличивается и растворяется — под ним уже оживает сайт.
  */
 import { gsap } from 'gsap';
-import { $ } from '../lib/dom';
+import { $, $$ } from '../lib/dom';
 import { prefersReducedMotion } from '../lib/utils';
 
 let markOpened!: () => void;
@@ -36,6 +36,8 @@ export function initIntro(): void {
 
   const flap = $('.letter-flap', letter);
   const flapLine = $('.flap-line', flap);
+  const flapShadows = $$('.flap-shadow', flap);
+  const flapInner = $('.flap-inner', flap);
   const card = $('.letter-card', letter);
   const seal = $('.seal', letter);
 
@@ -60,10 +62,13 @@ export function initIntro(): void {
 
     gsap.timeline({ onComplete: () => intro.remove() })
       .to(hint, { opacity: 0, duration: 0.3, overwrite: true }, 0)
-      // 1. Открытие: печать отпускает письмо, клапан откидывается вверх, из конверта выезжает открытка.
+      // 1. Открытие: печать отпускает письмо, клапан разворачивается на 180°, из конверта выезжает открытка.
       .to(seal, { scale: 0.7, opacity: 0, duration: 0.35, ease: 'power2.in' }, 0)
-      .to(flap, { scaleY: -0.3, duration: 0.75, ease: 'power2.inOut' }, 0.1)
-      .to(flap, { opacity: 0, duration: 0.3, ease: 'power1.in' }, 0.55)
+      // Клапан разворачивается на 180° вокруг верхнего края и остаётся открытым (за открыткой).
+      .to(flap, { rotationX: -180, transformPerspective: 900, duration: 0.85, ease: 'power2.inOut' }, 0.1)
+      .set(flap, { zIndex: 0 }, 0.52)
+      .to(flapShadows, { opacity: 0, duration: 0.3 }, 0.1)
+      .to(flapInner, { opacity: 1, duration: 0.3 }, 0.5)
       // Из конверта выезжает открытка.
       .to(card, { yPercent: -50, duration: 0.8, ease: 'power2.out' }, 0.5)
       // 2. Письмо разгоняется на зрителя; прозрачность уходит чуть позже, когда оно уже заполнило экран.

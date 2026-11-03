@@ -45,23 +45,20 @@
         <span class="card-title">Приглашение</span>
         <i class="card-rule"></i>
       </span>
-      <!-- лицевая сторона конверта: бумага и косые линии нижних клапанов -->
-      <span class="letter-paper" aria-hidden="true">
-        <svg viewBox="0 0 100 71.4" preserveAspectRatio="none">
-          <path d="M0 71.4L50 38.6L100 71.4" fill="none" stroke="#a98445" stroke-opacity=".3" stroke-width=".3" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      <!-- верхний клапан: заливка, тень под краем и золотая линия края (она вычерчивается при загрузке) -->
+      <!-- лицевая сторона конверта -->
+      <span class="letter-paper" aria-hidden="true"></span>
+      <!-- верхний клапан: заливка, тень под краем и золотая линия края (она вычерчивается при загрузке); при открытии разворачивается на 180° -->
       <svg class="letter-flap" viewBox="0 0 100 38.6" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="flapPaper" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stop-color="#fbf1cb"/><stop offset="1" stop-color="#f1dea6"/>
           </linearGradient>
         </defs>
-        <path d="M0 2.4L50 41L100 2.4Z" fill="#5a3714" fill-opacity=".07"/>
-        <path d="M0 1.1L50 39.7L100 1.1Z" fill="#5a3714" fill-opacity=".13"/>
-        <path d="M0 0L50 38.6L100 0Z" fill="url(#flapPaper)"/>
-        <path class="flap-line" d="M0 0L50 38.6L100 0" pathLength="1" fill="none" stroke="#a98445" stroke-width=".4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path class="flap-shadow" d="M0.7 2.4L50 41L99.3 2.4Z" fill="#5a3714" fill-opacity=".07"/>
+        <path class="flap-shadow" d="M0.7 1.1L50 39.7L99.3 1.1Z" fill="#5a3714" fill-opacity=".13"/>
+        <path d="M0.7 0L50 38.6L99.3 0Z" fill="url(#flapPaper)"/>
+        <path class="flap-inner" d="M0.7 0L50 38.6L99.3 0Z" fill="#5a3714" fill-opacity=".1"/>
+        <path class="flap-line" d="M0.7 0L50 38.6L99.3 0" pathLength="1" fill="none" stroke="#a98445" stroke-width=".4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="seal" aria-hidden="true">
         <svg viewBox="0 0 200 200">
