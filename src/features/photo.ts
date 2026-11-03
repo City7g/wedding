@@ -1,5 +1,5 @@
 /**
- * Фото на втором экране: круглое «раскрытие», золотой контур с уголками и подпись.
+ * Фото: круглое «раскрытие» картинки и подпись. Золотой контур с уголками — просто рамка: она на месте всегда, не анимируется.
  * Начальное состояние выставляется сразу (под клипом ничего не видно), а сама анимация играет, когда фото попадает в кадр.
  */
 import { gsap } from 'gsap';
@@ -21,13 +21,7 @@ function initFigure(figure: HTMLElement): void {
       { clipPath: 'circle(100% at 50% 50%)', duration: 2.2, ease: 'power3.out' }, 0.15)
     .fromTo($('img', frame),
       { scale: 1.4 },
-      { scale: 1, duration: 3, ease: 'power2.out' }, 0.15)
-    .fromTo($('.photo-ring', figure),
-      { opacity: 0, scale: 0.93 },
-      { opacity: 1, scale: 1, duration: 1.8, ease: 'power3.out' }, 1.1)
-    .fromTo($$('.photo-corner', figure),
-      { opacity: 0, scale: 0.7 },
-      { opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out', stagger: 0.1 }, 1.6);
+      { scale: 1, duration: 3, ease: 'power2.out' }, 0.15);
 
   // Подпись есть не у каждого фото (у зала её нет).
   if (caption) {

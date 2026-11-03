@@ -35,17 +35,15 @@ export function initIntro(): void {
   const hint = $('.env-hint', intro);
 
   const flap = $('.letter-flap', letter);
-  const flapLine = $('.flap-line', flap);
   const flapShadows = $$('.flap-shadow', flap);
   const flapInner = $('.flap-inner', flap);
   const card = $('.letter-card', letter);
   const seal = $('.seal', letter);
 
-  // Письмо мягко появляется при загрузке, а линия клапана вычерчивается.
+  // Письмо мягко появляется при загрузке.
   if (!prefersReducedMotion) {
     gsap.from(letter, { opacity: 0, y: 36, scale: 0.94, duration: 1.1, ease: 'power3.out' });
     gsap.from(hint, { opacity: 0, duration: 1, delay: 0.8 });
-    gsap.fromTo(flapLine, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.4, delay: 0.3, ease: 'power2.inOut' });
   }
 
   let opened = false;
