@@ -7,8 +7,6 @@ import { buildBindings, fillContent } from './content';
 import { startCountdown } from './features/countdown';
 import { initDrawnText } from './features/drawText';
 import { initIntro } from './features/intro';
-import { initPetalDecor } from './features/petalDecor';
-import { startPetalHeart } from './features/petalHeart';
 import { initPhoto } from './features/photo';
 import { initReveal } from './features/reveal';
 import { initRsvpForm } from './features/rsvp';
@@ -18,10 +16,8 @@ import { startSilk } from './features/silk';
 const bindings = buildBindings(config);
 fillContent(config, bindings);
 
-// Фон и украшения
+// Фон
 startSilk();
-startPetalHeart();
-initPetalDecor();
 
 // Появление блоков и «рисованные» надписи
 initReveal();

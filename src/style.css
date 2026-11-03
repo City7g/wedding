@@ -31,26 +31,6 @@ b { font-weight: 500; }
 }
 
 /* ------------------------------------------------------------------ */
-/* Лепестки роз                                                        */
-/* ------------------------------------------------------------------ */
-/* Парящий лепесток: капля, повёрнутая на случайный угол (--r). */
-.scatter i {
-  display: block; width: 100%; height: 100%;
-  border-radius: 50% 50% 50% 0;
-  background: linear-gradient(135deg, #fbe3e7 0%, #e07a8d 45%, #a8304d 100%);
-  box-shadow: 0 3px 6px rgba(60, 10, 20, .3), inset -2px -3px 5px rgba(90, 10, 35, .3);
-  transform: rotate(var(--r, 0deg));
-}
-.scatter i:nth-child(odd) { filter: hue-rotate(-6deg) saturate(1.1); }
-
-.scatter { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.scatter u { position: absolute; display: block; will-change: transform; }
-.scatter i { animation: drift 7s ease-in-out infinite; }
-@keyframes drift {
-  50% { transform: translateY(-9px) rotate(calc(var(--r, 0deg) + 16deg)); }
-}
-
-/* ------------------------------------------------------------------ */
 /* Раскладка                                                           */
 /* ------------------------------------------------------------------ */
 .column {
@@ -59,7 +39,7 @@ b { font-weight: 500; }
   overflow-x: clip;
 }
 section { position: relative; padding: 0 28px; text-align: center; }
-section > *:not(.scatter) { position: relative; z-index: 1; }
+section > * { position: relative; z-index: 1; }
 
 .light { color: var(--light); }
 .light .title, .light .eyebrow, .light .script { text-shadow: 0 2px 20px rgba(60, 8, 20, .5); }
@@ -94,9 +74,6 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   font-family: var(--serif); font-weight: 300; text-transform: uppercase;
   font-size: clamp(48px, 14.5vw, 80px); line-height: .98; text-shadow: 0 2px 16px rgba(60, 8, 20, .55), 0 0 3px rgba(60, 8, 20, .35); letter-spacing: .01em; margin: 22px 0 26px;
   display: flex; flex-direction: column; align-items: center;
-}
-#petals {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100svh; z-index: 1; display: block; pointer-events: none;
 }
 .hero { touch-action: pan-y; }
 .names i { font-style: italic; font-size: .36em; line-height: 1.4; opacity: .8; text-transform: none; }
@@ -308,12 +285,8 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 #intro.opening { pointer-events: none; }
 #intro.opening .seal, #intro.opening .env-hint { animation: none; }
 
-/* Пока письмо закрыто, украшения главного экрана за ним не нужны: появляются вместе с сайтом. */
-.scatter { transition: opacity 1.2s; }
-body.locked .scatter { opacity: 0; }
-
 @media (prefers-reduced-motion: reduce) {
-  .scatter i, .seal, .env-hint, .scroll-hint span { animation: none; }
+  .seal, .env-hint, .scroll-hint span { animation: none; }
 }
 
 /* ------------------------------------------------------------------ */
