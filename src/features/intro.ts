@@ -6,9 +6,14 @@ const OPEN_AFTER_MS = 1900;
 /** Через сколько заставка удаляется из DOM (после затухания). */
 const REMOVE_AFTER_MS = 3300;
 
+let markOpened!: () => void;
+/** Выполняется, когда сайт открыт: анимации появления ждут именно этого момента. */
+export const siteOpened = new Promise<void>((resolve) => { markOpened = resolve; });
+
 function showSite(): void {
   document.body.classList.remove('locked');
   document.body.classList.add('open');
+  markOpened();
 }
 
 export function initIntro(): void {

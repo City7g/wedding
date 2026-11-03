@@ -42,9 +42,6 @@ export interface RsvpSettings {
 export interface WeddingConfig {
   groom: string;
   bride: string;
-  /** Имена для надписей шрифтом Great Vibes — в нём нет кириллицы. */
-  groomLatin: string;
-  brideLatin: string;
   /** Дата и время начала, местное время гостей (ISO без часового пояса). */
   date: string;
   venue: Venue;

@@ -100,21 +100,25 @@ export function startPearlHeart(): void {
 
   let aspect = 0.5;
   function resize(): void {
-    const rect = hero.getBoundingClientRect();
+    // Холст — на всю ширину страницы, а по высоте равен первому экрану (который уже, чем страница).
+    const height = hero.offsetHeight;
+    canvas.style.height = `${height}px`;
+    const width = canvas.clientWidth;
     const dpr = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = Math.max(2, Math.round(rect.width * dpr));
-    canvas.height = Math.max(2, Math.round(rect.height * dpr));
+    canvas.width = Math.max(2, Math.round(width * dpr));
+    canvas.height = Math.max(2, Math.round(height * dpr));
     gl.viewport(0, 0, canvas.width, canvas.height);
-    aspect = rect.width / rect.height;
+    aspect = width / height;
   }
   resize();
+  new ResizeObserver(resize).observe(hero);
   addEventListener('resize', resize);
 
   // Указатель: x, y — в мировых координатах сцены, nx, ny — в долях экрана [-.5, .5].
   const pointer = { x: 0, y: 0, nx: 0, ny: 0, active: false };
 
   function trackPointer(event: PointerEvent): void {
-    const rect = hero.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
     pointer.x = ((px / rect.height) * 2 - aspect) * VIEW_HALF_HEIGHT;

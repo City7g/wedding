@@ -1,18 +1,19 @@
 /**
  * Надписи, которые «пишутся пером».
  *
- * В разметке это элементы `<span class="draw name" data-src="groomLat">`: класс задаёт вид надписи
+ * В разметке это элементы `<span class="draw name" data-src="groom">`: класс задаёт вид надписи
  * (см. DrawKind), data-src — что писать (ключ из Bindings или готовый текст), data-delay — пауза в секундах.
  *
  * Как это работает: текст настоящим шрифтом Great Vibes закрыт маской из центральных линий букв.
  * Линии вычерчиваются слева направо, и буквы проявляются ровно там, где прошло «перо».
  * В конце проявляется весь текст целиком — на случай тонких волосков, которые маска не покрыла.
  */
+import { gsap } from 'gsap';
 import type { Bindings } from '../content';
-import { $$ } from '../lib/dom';
+import { $, $$ } from '../lib/dom';
 import { type Point, simplify, strokeLength, thin, toSmoothPath, traceStrokes } from '../lib/skeleton';
 import { escapeHtml, sleep } from '../lib/utils';
-import { reveal } from './reveal';
+import { play, reveal } from './reveal';
 
 type DrawKind = 'name' | 'amp' | 'num' | 'small';
 
@@ -25,18 +26,18 @@ interface KindSettings {
 }
 
 const KINDS: Record<DrawKind, KindSettings> = {
-  name: { fontFamily: 'Great Vibes', fontSize: 230, speed: 4.0 },
-  amp: { fontFamily: 'Great Vibes', fontSize: 200, speed: 4.0 },
-  num: { fontFamily: 'Great Vibes', fontSize: 240, speed: 3.8 },
-  small: { fontFamily: 'Great Vibes', fontSize: 170, speed: 6.5 },
+  name: { fontFamily: 'Great Vibes', fontSize: 230, speed: 5.0 },
+  amp: { fontFamily: 'Great Vibes', fontSize: 200, speed: 4.5 },
+  num: { fontFamily: 'Great Vibes', fontSize: 240, speed: 4.4 },
+  small: { fontFamily: 'Great Vibes', fontSize: 170, speed: 8 },
 };
 
 /** Пиксель текста считается «чернилами», если он плотнее этого порога (0–255). */
 const INK_THRESHOLD = 55;
 /** Допуск упрощения линии штриха, в пикселях. */
 const SIMPLIFY_TOLERANCE = 1.3;
-/** Символы, которые нужно заранее загрузить в шрифт. */
-const PRELOAD_TEXT = 'DimaNatali 0123456789 &:.';
+/** Символы, которые нужно заранее загрузить в шрифт, помимо самих надписей. */
+const PRELOAD_TEXT = '0123456789 &:.';
 
 let maskCounter = 0;
 
@@ -101,13 +102,13 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
   for (const { mark } of marks) {
     if (mark.kind === 'dot') {
       const [cx, cy] = mark.center;
-      maskContent += `<circle class="dot" fill="#fff" cx="${cx}" cy="${cy}" r="${(fontSize * 0.045).toFixed(1)}" style="--d:${time.toFixed(2)}s"/>`;
+      maskContent += `<circle class="dot" fill="#fff" cx="${cx}" cy="${cy}" r="${(fontSize * 0.045).toFixed(1)}" data-d="${time.toFixed(2)}"/>`;
       time += 0.06;
     } else {
       const duration = Math.max(0.12, mark.length / penSpeed);
       const path = toSmoothPath(simplify(mark.points, SIMPLIFY_TOLERANCE));
-      maskContent += `<path class="st" pathLength="1" d="${path}" style="--d:${time.toFixed(2)}s;--t:${duration.toFixed(2)}s"/>`;
-      time += duration * 0.8 + 0.02;
+      maskContent += `<path class="st" pathLength="1" d="${path}" data-d="${time.toFixed(2)}" data-t="${duration.toFixed(2)}"/>`;
+      time += duration * 0.96; // следующий штрих начинается почти сразу: перо не «спотыкается» между буквами
     }
   }
 
@@ -122,8 +123,29 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
     `<g fill="none" stroke="#fff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${maskContent}</g>` +
     `</mask></defs>` +
     `<text ${textAttributes} mask="url(#${maskId})">${label}</text>` +
-    `<text class="full" ${textAttributes} style="--te:${(time + 0.1).toFixed(2)}s">${label}</text>` +
+    `<text class="full" ${textAttributes} data-d="${(time - 0.15).toFixed(2)}">${label}</text>` +
     `</svg>`;
+}
+
+/** Расписание надписи: штрихи вычерчиваются, точки появляются, в конце проявляется весь текст. */
+function buildPenTimeline(element: Element): gsap.core.Timeline {
+  const at = (target: Element) => Number(target.getAttribute('data-d'));
+  const timeline = gsap.timeline({ paused: true });
+
+  for (const stroke of $$('.st', element)) {
+    timeline.fromTo(stroke, { strokeDashoffset: 1 }, {
+      strokeDashoffset: 0, duration: Number(stroke.getAttribute('data-t')), ease: 'none', // ровный ход пера
+    }, at(stroke));
+  }
+  for (const dot of $$('.dot', element)) {
+    timeline.fromTo(dot, { opacity: 0, scale: 0.2, transformOrigin: '50% 50%' }, {
+      opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out',
+    }, at(dot));
+  }
+  const full = $('.full', element);
+  timeline.fromTo(full, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: 'sine.inOut' }, at(full));
+
+  return timeline;
 }
 
 function kindOf(element: Element): KindSettings {
@@ -133,19 +155,23 @@ function kindOf(element: Element): KindSettings {
 }
 
 export async function initDrawnText(bindings: Bindings): Promise<void> {
-  // Расчёт идёт по скелету букв, поэтому шрифт должен быть загружен заранее.
+  const elements = $$('.draw');
+  const textOf = (element: HTMLElement) => bindings[element.dataset.src ?? ''] ?? element.dataset.src ?? '';
+
+  // Расчёт идёт по скелету букв, поэтому шрифт должен быть загружен заранее — вместе с нужными алфавитами (кириллица и т. п.).
+  const preload = PRELOAD_TEXT + elements.map(textOf).join('');
   await Promise.all(Object.values(KINDS).map((kind) =>
-    document.fonts.load(fontOf(kind), PRELOAD_TEXT).catch(() => [])));
+    document.fonts.load(fontOf(kind), preload).catch(() => [])));
 
   const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
 
-  for (const element of $$('.draw')) {
-    const source = element.dataset.src ?? '';
-    const text = bindings[source] ?? source;
+  for (const element of elements) {
+    const text = textOf(element);
     const delay = Number(element.dataset.delay ?? 0);
 
     element.innerHTML = buildPenText(text, kindOf(element), delay, context);
-    reveal(element); // начнёт писать, когда блок появится на экране
+    const timeline = buildPenTimeline(element);
+    reveal(element, () => play(timeline)); // начнёт писать, когда блок появится на экране
 
     await sleep(0); // отдаём управление браузеру, чтобы страница не подвисала
   }

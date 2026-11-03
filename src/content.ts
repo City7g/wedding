@@ -16,7 +16,8 @@ export function buildBindings(config: WeddingConfig): Bindings {
   return {
     groom: config.groom,
     bride: config.bride,
-    monogram: `${config.groom[0]}&${config.bride[0]}`,
+    groomInitial: config.groom[0],
+    brideInitial: config.bride[0],
     orgName: config.organizer.name,
     deadline: config.rsvp.deadline,
     venueName: config.venue.name,
@@ -24,8 +25,6 @@ export function buildBindings(config: WeddingConfig): Bindings {
     venueCity: config.venue.city,
 
     // Для надписей, которые «рисуются» пером:
-    groomLat: config.groomLatin || config.groom,
-    brideLat: config.brideLatin || config.bride,
     dateShort: `${day}.${month}.${String(date.getFullYear()).slice(-2)}`,
     dateDots: `${day} . ${month} . ${date.getFullYear()}`,
     timeOnly: `${hours} : ${minutes}`,
@@ -51,12 +50,13 @@ function fillVenue({ venue }: WeddingConfig): void {
   const query = encodeURIComponent(`${venue.name}, ${venue.address}, ${venue.city}`);
   $<HTMLAnchorElement>('#venueAddress').href = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
+  const figure = $('#venueFigure');
   const image = $<HTMLImageElement>('#venuePhoto');
   if (!venue.photo) {
-    image.hidden = true;
+    figure.hidden = true;
     return;
   }
-  image.onerror = () => { image.hidden = true; };
+  image.onerror = () => { figure.hidden = true; };
   image.src = venue.photo;
 }
 

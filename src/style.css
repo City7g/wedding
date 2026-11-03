@@ -92,8 +92,8 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   font-size: clamp(48px, 14.5vw, 80px); line-height: .98; text-shadow: 0 2px 16px rgba(60, 8, 20, .55), 0 0 3px rgba(60, 8, 20, .35); letter-spacing: .01em; margin: 22px 0 26px;
   display: flex; flex-direction: column; align-items: center;
 }
-.hero .pearl3d {
-  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; touch-action: none;
+#pearl3d {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100svh; z-index: 1; display: block; pointer-events: none;
 }
 .hero { touch-action: pan-y; }
 .names i { font-style: italic; font-size: .36em; line-height: 1.4; opacity: .8; text-transform: none; }
@@ -149,7 +149,7 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .cal-grid .day.on { position: relative; color: #fff7d8; }
 .cal-grid .day.on::before {
   content: ''; position: absolute; width: 58px; height: 52px; z-index: 0;
-  background: #8e1f36; transform: translateY(3px) scale(.82);
+  background: #8e1f36; transform: translateY(3px) scale(var(--heart, .82));
   clip-path: path('M29 51 C 8 36, 0 26, 0 15 C 0 6, 7 0, 15 0 C 21 0, 26 3, 29 8 C 32 3, 37 0, 43 0 C 51 0, 58 6, 58 15 C 58 26, 50 36, 29 51 Z');
 }
 .cal-grid .day.on b { position: relative; z-index: 1; font-weight: 700; font-size: 15px; }
@@ -160,9 +160,14 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   margin-top: 14px; font-family: var(--serif); font-weight: 300; text-transform: uppercase;
   font-size: clamp(30px, 8.6vw, 42px); line-height: 1.05; letter-spacing: .02em; color: var(--ink);
 }
-.venue-address { display: inline-block; margin-top: 18px; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-decoration: none; }
-.venue-address:hover, .venue-address:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
-.venue-photo { display: block; margin: 30px auto 0; width: 100%; max-width: 340px; height: auto; box-shadow: 0 14px 40px rgba(60, 8, 20, .2); }
+.venue-address { margin-top: 18px; font-size: 14px; line-height: 1.7; color: var(--ink-soft); }
+/* Ссылка на карту — заметная кнопка с иконкой, чтобы сразу было видно, что на неё можно нажать */
+.venue-map { display: inline-flex !important; align-items: center; gap: 10px; margin-top: 22px; text-decoration: none; }
+.venue-map svg { flex: none; }
+/* Фото зала — то же оформление, что у фото пары, только в альбомной рамке */
+.photo.wide { width: min(84%, 340px); margin-top: 56px; }
+.photo.wide .photo-frame { aspect-ratio: 6 / 5; }
+.photo.wide .photo-frame img { object-position: 50% 50%; }
 
 /* Дресс-код */
 .palette { list-style: none; margin: 38px auto 0; padding: 0; max-width: 340px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px 12px; }
@@ -257,11 +262,10 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 /* ------------------------------------------------------------------ */
 /* Появление                                                           */
 /* ------------------------------------------------------------------ */
-.rv { opacity: 0; transform: translateY(26px); filter: blur(6px); transition: opacity 1.1s var(--ease), transform 1.1s var(--ease), filter 1.1s var(--ease); }
-.rv.in { opacity: 1; transform: none; filter: none; }
-.hero .rv:nth-child(2) { transition-delay: .15s; } .hero .rv:nth-child(3) { transition-delay: .3s; }
-.hero .rv:nth-child(4) { transition-delay: .5s; } .hero .rv:nth-child(5) { transition-delay: .8s; }
-body:not(.open) .rv { opacity: 0 !important; }
+.rv { opacity: 0; }
+.rv.in { opacity: 1; }
+/* пока играет GSAP, CSS-переход не должен сглаживать его кадры */
+.btn.rv:not(.in) { transition: none; }
 
 /* ------------------------------------------------------------------ */
 /* Интро-конверт                                                       */
@@ -273,18 +277,7 @@ body:not(.open) .rv { opacity: 0 !important; }
 .env-body { position: absolute; inset: 0; background: linear-gradient(180deg, #f7e8b4, #efd98f); }
 .env-texture { position: absolute; inset: 0; }
 .env-texture .emboss { filter: drop-shadow(1.5px 1.5px 0 rgba(160, 110, 40, .3)); }
-.env-fold {
-  position: absolute; inset: 0;
-  background:
-    linear-gradient(to top right, transparent calc(50% - 1px), rgba(140, 100, 40, .18) 50%, transparent calc(50% + 1px)) bottom left / 50% 48% no-repeat,
-    linear-gradient(to top left, transparent calc(50% - 1px), rgba(140, 100, 40, .18) 50%, transparent calc(50% + 1px)) bottom right / 50% 48% no-repeat;
-}
 .flap { position: absolute; left: 0; top: 0; width: 100%; height: 54%; transform-origin: top center; transform-style: preserve-3d; z-index: 2; }
-.flap-paper {
-  position: absolute; inset: 0; clip-path: polygon(0 0, 100% 0, 50% 100%);
-  background: linear-gradient(180deg, #f9edc2, #f1dc9c); filter: drop-shadow(0 6px 10px rgba(90, 60, 20, .3));
-}
-.flap-paper { backface-visibility: hidden; }
 .flap-pearls { position: absolute; inset: 0; backface-visibility: hidden; }
 .seal {
   position: absolute; z-index: 5; left: 50%; top: 54%; width: clamp(112px, 30vw, 150px); aspect-ratio: 1;
@@ -293,7 +286,9 @@ body:not(.open) .rv { opacity: 0 !important; }
   transition: opacity .5s, transform .5s var(--ease);
 }
 .seal svg { width: 100%; height: 100%; overflow: visible; }
-.seal-mono { font: italic 400 52px var(--serif); fill: #f6e3a8; stroke: #2a0510; stroke-opacity: .55; stroke-width: .6; paint-order: stroke; }
+.seal-mono { font: 500 58px var(--serif); fill: #f6e3a8; stroke: #2a0510; stroke-opacity: .55; stroke-width: .6; paint-order: stroke; }
+/* амперсанд мельче и курсивом, буквы — прямые: так вензель «Д&Н» не читается как «ДиН» */
+.seal-mono .mono-amp { font-style: italic; font-weight: 400; font-size: 38px; }
 @keyframes sealPulse { 50% { transform: translate(-50%, -50%) scale(1.05); } }
 .seal:focus-visible { outline: 2px dashed var(--ink); outline-offset: 6px; border-radius: 50%; }
 .env-hint {
@@ -315,7 +310,6 @@ body:not(.open) .rv { opacity: 0 !important; }
 #intro.done { opacity: 0; visibility: hidden; transition: opacity 1s .1s, visibility 0s 1.2s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .rv { transition-duration: .01s; }
   .scatter i, .seal, .env-hint, .scroll-hint span { animation: none; }
 }
 
@@ -334,76 +328,38 @@ body:not(.open) .rv { opacity: 0 !important; }
 .datestack { display: flex; flex-direction: column; align-items: center; margin: 22px auto 0; color: #6d1a2c; }
 .datestack .draw.num { margin: -14px 0; }
 .datestack .draw.small { margin-top: 14px; }
-@media (prefers-reduced-motion: reduce) {
-  }
 
 /* ------------------------------------------------------------------ */
 /* Фото на втором экране: раскрытие, золотой контур с уголками, блик   */
 /* ------------------------------------------------------------------ */
 .photo { position: relative; width: min(76%, 280px); margin: 70px auto 0; }
 .photo[hidden] { display: none; }
-.photo-wrap { position: relative; }
-.photo-wrap::before {
-  content: ''; position: absolute; inset: -9px; border: 1px solid rgba(184, 151, 90, .8);
-  opacity: 0; transform: scale(.93); transition: opacity 1.4s var(--ease) 1.1s, transform 1.8s var(--ease) 1.1s; pointer-events: none;
-}
-.photo.in .photo-wrap::before { opacity: 1; transform: none; }
-.photo.in .photo-wrap { filter: drop-shadow(0 18px 24px rgba(60, 8, 20, .32)); }
+.photo-wrap { position: relative; filter: drop-shadow(0 18px 24px rgba(60, 8, 20, .32)); }
+.photo-ring { position: absolute; inset: -9px; border: 1px solid rgba(184, 151, 90, .8); opacity: 0; pointer-events: none; }
 .photo-frame {
   position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--sand);
-  clip-path: circle(0% at 50% 58%); transition: clip-path 2.2s cubic-bezier(.3, .7, .2, 1) .15s;
+  clip-path: circle(0% at 50% 58%);
 }
-.photo.in .photo-frame { clip-path: circle(100% at 50% 50%); }
 .photo-frame img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%;
-  transform: scale(1.4); filter: blur(14px) saturate(.4);
-  transition: transform 3s var(--ease) .15s, filter 2.4s ease-out .3s;
 }
-.photo.in .photo-frame img { transform: none; filter: none; }
-.photo-frame::after {
-  content: ''; position: absolute; inset: -30% -60%; pointer-events: none;
-  background: linear-gradient(105deg, transparent 42%, rgba(255, 250, 235, .55) 50%, transparent 58%); transform: translateX(-100%);
-}
-.photo.in .photo-frame::after { animation: shine 2s ease-in-out 3.2s 1 forwards; }
-@keyframes shine { to { transform: translateX(100%); } }
 /* Золотые уголки с ромбиками */
 .photo-corner {
   position: absolute; width: 30px; height: 30px; border: 2px solid #b8975a; pointer-events: none;
-  opacity: 0; transform: scale(.7); transition: opacity 1s var(--ease) 1.6s, transform 1.2s var(--ease) 1.6s;
+  opacity: 0;
 }
 .photo-corner::after { content: ''; position: absolute; width: 6px; height: 6px; background: #b8975a; transform: rotate(45deg); }
-.photo.in .photo-corner { opacity: 1; transform: none; }
 .photo-corner.tl { top: -19px; left: -19px; border-right: 0; border-bottom: 0; transform-origin: 100% 100%; }
 .photo-corner.tr { top: -19px; right: -19px; border-left: 0; border-bottom: 0; transform-origin: 0 100%; }
 .photo-corner.bl { bottom: -19px; left: -19px; border-right: 0; border-top: 0; transform-origin: 100% 0; }
 .photo-corner.br { bottom: -19px; right: -19px; border-left: 0; border-top: 0; transform-origin: 0 0; }
 .photo-corner.tl::after { top: -4px; left: -4px; } .photo-corner.tr::after { top: -4px; right: -4px; }
 .photo-corner.bl::after { bottom: -4px; left: -4px; } .photo-corner.br::after { bottom: -4px; right: -4px; }
-.photo figcaption { margin-top: 40px; transition-delay: 1.9s; }
+.photo figcaption { margin-top: 40px; opacity: 0; }
 
-@media (prefers-reduced-motion: reduce) {
-  .photo-frame, .photo-frame img, .photo-wrap::before, .photo-corner { transition-duration: .01s !important; transition-delay: 0s !important; animation-duration: .01s !important; animation-delay: 0s !important; }
-}
-
-/* одна линия: перо вычерчивает центральную линию каждой буквы */
+/* одна линия: перо вычерчивает центральную линию каждой буквы (ход пера — в drawText.ts, GSAP) */
 .draw .st { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
-.draw.in .st { animation: penDraw var(--t) cubic-bezier(.45, .05, .35, 1) var(--d) forwards; }
-@keyframes penDraw { to { stroke-dashoffset: 0; } }
-.draw .dot { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.2); }
-.draw.in .dot { animation: dotIn .4s ease var(--d) forwards; }
-@keyframes dotIn { to { opacity: 1; transform: none; } }
-body:not(.open) .draw .st, body:not(.open) .draw .dot { animation: none !important; }
-@media (prefers-reduced-motion: reduce) {
-  .draw .st { animation: none !important; stroke-dashoffset: 0; }
-  .draw .dot { animation: none !important; opacity: 1; transform: none; }
-}
-
-/* в конце проявляется весь текст целиком */
-.draw .full { opacity: 0; }
-.draw.in .full { animation: fullIn .7s ease var(--te) forwards; }
-@keyframes fullIn { to { opacity: 1; } }
-body:not(.open) .draw .full { animation: none !important; }
-@media (prefers-reduced-motion: reduce) { .draw .full { animation: none !important; opacity: 1; } }
+.draw .dot, .draw .full { opacity: 0; }
 
 /* ------------------------------------------------------------------ */
 /* Таймер: цифры перекатываются сверху вниз                            */

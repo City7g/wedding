@@ -9,8 +9,10 @@ import { initDrawnText } from './features/drawText';
 import { initIntro } from './features/intro';
 import { initPearlDecor } from './features/pearlDecor';
 import { startPearlHeart } from './features/pearlHeart';
+import { initPhoto } from './features/photo';
 import { initReveal } from './features/reveal';
 import { initRsvpForm } from './features/rsvp';
+import { initSectionReveal } from './features/sectionReveal';
 import { startSilk } from './features/silk';
 
 const bindings = buildBindings(config);
@@ -23,6 +25,8 @@ initPearlDecor();
 
 // Появление блоков и «рисованные» надписи
 initReveal();
+initPhoto();
+initSectionReveal();
 void initDrawnText(bindings);
 
 // Живые части страницы

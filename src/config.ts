@@ -6,11 +6,7 @@ import type { WeddingConfig } from './config.types';
 
 export const config: WeddingConfig = {
   groom: 'Дима',
-  bride: 'Натали',
-
-  // Для надписей шрифтом Great Vibes (в нём нет кириллицы — имена пишутся латиницей)
-  groomLatin: 'Dima',
-  brideLatin: 'Natali',
+  bride: 'Наталья',
 
   // Дата и время начала (местное время гостей)
   date: '2026-12-12T16:30:00',
