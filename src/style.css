@@ -31,21 +31,24 @@ b { font-weight: 500; }
 }
 
 /* ------------------------------------------------------------------ */
-/* Жемчуг                                                              */
+/* Лепестки роз                                                        */
 /* ------------------------------------------------------------------ */
-.pearl-dot, .scatter i {
-  display: block; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #fffdf0 0, #fbf0cc 26%, #ead29a 64%, #b8975a 100%);
-  box-shadow: 0 3px 6px rgba(60, 10, 20, .28), inset -1px -2px 3px rgba(110, 60, 20, .25);
+/* Парящий лепесток: капля, повёрнутая на случайный угол (--r). */
+.scatter i {
+  display: block; width: 100%; height: 100%;
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(135deg, #fbe3e7 0%, #e07a8d 45%, #a8304d 100%);
+  box-shadow: 0 3px 6px rgba(60, 10, 20, .3), inset -2px -3px 5px rgba(90, 10, 35, .3);
+  transform: rotate(var(--r, 0deg));
 }
-.pearls { position: relative; pointer-events: none; }
-.pearls { height: 90px; margin: 10px -40px 14px; }
-.pearls svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60, 10, 20, .3)); }
+.scatter i:nth-child(odd) { filter: hue-rotate(-6deg) saturate(1.1); }
 
 .scatter { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .scatter u { position: absolute; display: block; will-change: transform; }
-.scatter i { animation: bob 7s ease-in-out infinite; }
-@keyframes bob { 50% { transform: translateY(-9px); } }
+.scatter i { animation: drift 7s ease-in-out infinite; }
+@keyframes drift {
+  50% { transform: translateY(-9px) rotate(calc(var(--r, 0deg) + 16deg)); }
+}
 
 /* ------------------------------------------------------------------ */
 /* Раскладка                                                           */
@@ -92,7 +95,7 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
   font-size: clamp(48px, 14.5vw, 80px); line-height: .98; text-shadow: 0 2px 16px rgba(60, 8, 20, .55), 0 0 3px rgba(60, 8, 20, .35); letter-spacing: .01em; margin: 22px 0 26px;
   display: flex; flex-direction: column; align-items: center;
 }
-#pearl3d {
+#petals {
   position: absolute; top: 0; left: 0; width: 100%; height: 100svh; z-index: 1; display: block; pointer-events: none;
 }
 .hero { touch-action: pan-y; }

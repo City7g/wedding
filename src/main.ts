@@ -7,8 +7,8 @@ import { buildBindings, fillContent } from './content';
 import { startCountdown } from './features/countdown';
 import { initDrawnText } from './features/drawText';
 import { initIntro } from './features/intro';
-import { initPearlDecor } from './features/pearlDecor';
-import { startPearlHeart } from './features/pearlHeart';
+import { initPetalDecor } from './features/petalDecor';
+import { startPetalHeart } from './features/petalHeart';
 import { initPhoto } from './features/photo';
 import { initReveal } from './features/reveal';
 import { initRsvpForm } from './features/rsvp';
@@ -20,8 +20,8 @@ fillContent(config, bindings);
 
 // Фон и украшения
 startSilk();
-startPearlHeart();
-initPearlDecor();
+startPetalHeart();
+initPetalDecor();
 
 // Появление блоков и «рисованные» надписи
 initReveal();

@@ -1,33 +1,36 @@
 /**
- * Жемчужное сердце на первом экране.
+ * Сердце из лепестков роз на первом экране.
  *
- * Движение каждой жемчужины считается здесь, на CPU: нить течёт по контуру сердца,
- * отталкивается от курсора или пальца, «бьётся», а по клику рассыпается и собирается снова.
- * Рисуется это дёшево: одна заранее нарисованная «спрайтовая» жемчужина и её тень
- * масштабируются в 2D-канвасе по перспективе — без шейдеров и без расчёта по каждому пикселю.
+ * Движение каждого лепестка считается здесь, на CPU: гирлянда течёт по контуру сердца,
+ * лепестки трепещут, отлетают от курсора или пальца, «бьются» вместе с сердцем, а по клику
+ * рассыпаются, кувыркаясь, и собираются снова. Рисуется это дёшево: несколько заранее
+ * нарисованных спрайтов лепестка и мягкая тень масштабируются и поворачиваются
+ * в 2D-канвасе по перспективе — без шейдеров.
  */
 import { $ } from '../lib/dom';
 import { onFrame } from '../lib/frameLoop';
 import { prefersReducedMotion } from '../lib/utils';
 import { siteOpened } from './intro';
 
-const OUTER_COUNT = 60;
-const INNER_COUNT = 26;
-const PEARL_COUNT = OUTER_COUNT + INNER_COUNT;
+const OUTER_COUNT = 56;
+const INNER_COUNT = 24;
+const PETAL_COUNT = OUTER_COUNT + INNER_COUNT;
+/** «Радиус» лепестка: длина лепестка — примерно 1.7 диаметра. */
 const OUTER_RADIUS = 0.05;
-const INNER_RADIUS = 0.037;
+const INNER_RADIUS = 0.038;
+const PETAL_LENGTH = 1.7;
 
 /** Камера стоит в z = -3, фокус 1.6: половина высоты видимой области на плоскости z = 0 — 3 / 1.6. */
 const CAMERA_Z = 3;
 const FOCAL = 1.6;
 const VIEW_HALF_HEIGHT = CAMERA_Z / FOCAL;
-/** Размер спрайта жемчужины в пикселях (с запасом под retina). */
+/** Размер спрайта лепестка в пикселях (с запасом под retina). */
 const SPRITE_SIZE = 96;
-/** Смещение тени жемчужины на «шёлк» (в мировых единицах: вправо и вниз). */
+/** Смещение тени лепестка на «шёлк» (в мировых единицах: вправо и вниз). */
 const SHADOW_OFFSET: Point = [0.045, 0.075];
-/** Жемчужины собираются в сердце за столько миллисекунд после открытия конверта. */
+/** Лепестки собираются в сердце за столько миллисекунд после открытия конверта. */
 const GATHER_MS = 2200;
-/** Радиус, в котором курсор отталкивает жемчужины. */
+/** Радиус, в котором курсор отталкивает лепестки. */
 const REPEL_RADIUS = 0.55;
 
 type Point = [number, number];
@@ -77,8 +80,11 @@ function pointOnHeart(progress: number): Point {
 }
 
 // ---------------------------------------------------------------------------
-// Спрайты: жемчужина и мягкая тень рисуются один раз.
+// Спрайты: лепестки и мягкая тень рисуются один раз.
 // ---------------------------------------------------------------------------
+
+/** Оттенки лепестков: от тёмной бордовой розы до бледно-розового. */
+const PETAL_COLORS = ['#b8344f', '#cf566e', '#df7a8c', '#ecabb6', '#f6d0d6', '#9c2442', '#d9667c'];
 
 function makeSprite(size: number, paint: (context: CanvasRenderingContext2D, size: number) => void): HTMLCanvasElement {
   const sprite = document.createElement('canvas');
@@ -87,35 +93,48 @@ function makeSprite(size: number, paint: (context: CanvasRenderingContext2D, siz
   return sprite;
 }
 
-function makePearlSprite(): HTMLCanvasElement {
+/** Лепесток лежит вдоль оси X: узкое основание слева, широкий закруглённый край справа. */
+function makePetalSprite(color: string): HTMLCanvasElement {
   return makeSprite(SPRITE_SIZE, (context, size) => {
-    const radius = size / 2;
+    const k = size / 96;
+    context.scale(k, k);
+
     context.beginPath();
-    context.arc(radius, radius, radius - 0.5, 0, Math.PI * 2);
+    context.moveTo(4, 48);
+    context.bezierCurveTo(20, 22, 56, 12, 82, 24);
+    context.bezierCurveTo(96, 32, 96, 64, 82, 72);
+    context.bezierCurveTo(56, 84, 20, 74, 4, 48);
+    context.closePath();
+    context.save();
     context.clip();
 
-    // Основной цвет: свет падает сверху-слева (те же оттенки, что у жемчужин на конверте).
-    const body = context.createRadialGradient(size * 0.34, size * 0.3, 0, size * 0.34, size * 0.3, size * 0.78);
-    body.addColorStop(0, '#fffdf0');
-    body.addColorStop(0.28, '#fbf0cc');
-    body.addColorStop(0.65, '#ead29a');
-    body.addColorStop(1, '#b8975a');
-    context.fillStyle = body;
-    context.fillRect(0, 0, size, size);
+    context.fillStyle = color;
+    context.fillRect(0, 0, 96, 96);
 
-    // Розоватый отсвет «шёлка» снизу-справа.
-    const bounce = context.createRadialGradient(size * 0.72, size * 0.86, 0, size * 0.72, size * 0.86, size * 0.5);
-    bounce.addColorStop(0, 'rgba(217, 110, 120, .4)');
-    bounce.addColorStop(1, 'rgba(217, 110, 120, 0)');
-    context.fillStyle = bounce;
-    context.fillRect(0, 0, size, size);
+    // Основание темнее, а край светлее и прозрачнее, как у настоящего лепестка.
+    const shade = context.createLinearGradient(4, 0, 92, 0);
+    shade.addColorStop(0, 'rgba(70, 6, 24, .55)');
+    shade.addColorStop(0.45, 'rgba(70, 6, 24, 0)');
+    shade.addColorStop(0.8, 'rgba(255, 228, 234, .1)');
+    shade.addColorStop(1, 'rgba(255, 228, 234, .6)');
+    context.fillStyle = shade;
+    context.fillRect(0, 0, 96, 96);
 
-    // Блик.
-    const glint = context.createRadialGradient(size * 0.33, size * 0.27, 0, size * 0.33, size * 0.27, size * 0.14);
-    glint.addColorStop(0, 'rgba(255, 255, 255, .95)');
+    // Мягкий блик сверху.
+    const glint = context.createRadialGradient(58, 32, 0, 58, 32, 26);
+    glint.addColorStop(0, 'rgba(255, 255, 255, .45)');
     glint.addColorStop(1, 'rgba(255, 255, 255, 0)');
     context.fillStyle = glint;
-    context.fillRect(0, 0, size, size);
+    context.fillRect(0, 0, 96, 96);
+
+    // Прожилка посередине.
+    context.strokeStyle = 'rgba(110, 14, 40, .22)';
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.moveTo(8, 48);
+    context.quadraticCurveTo(46, 46, 76, 48);
+    context.stroke();
+    context.restore();
   });
 }
 
@@ -132,22 +151,30 @@ function makeShadowSprite(): HTMLCanvasElement {
 
 // ---------------------------------------------------------------------------
 
-export function startPearlHeart(): void {
-  const canvas = $<HTMLCanvasElement>('#pearl3d');
+export function startPetalHeart(): void {
+  const canvas = $<HTMLCanvasElement>('#petals');
   const hero = $('#hero');
   const context = canvas.getContext('2d');
   if (!context) return;
 
-  const pearlSprite = makePearlSprite();
+  const petalSprites = PETAL_COLORS.map(makePetalSprite);
   const shadowSprite = makeShadowSprite();
 
-  // Положение и скорость каждой жемчужины (x, y, z подряд). Сначала они разбросаны
+  // Положение и скорость каждого лепестка (x, y, z подряд). Сначала они разбросаны
   // над экраном и ждут, пока откроется конверт.
-  const position = new Float32Array(PEARL_COUNT * 3);
-  const velocity = new Float32Array(PEARL_COUNT * 3);
-  const radii = new Float32Array(PEARL_COUNT);
-  const order = Array.from({ length: PEARL_COUNT }, (_, i) => i);
-  for (let i = 0; i < PEARL_COUNT; i++) {
+  const position = new Float32Array(PETAL_COUNT * 3);
+  const velocity = new Float32Array(PETAL_COUNT * 3);
+  const radii = new Float32Array(PETAL_COUNT);
+  /** Угол поворота лепестка на экране; кувырок после рассыпания: скорость вращения и накопленный угол (оба затухают). */
+  const angle = new Float32Array(PETAL_COUNT);
+  const tumble = new Float32Array(PETAL_COUNT);
+  const spin = new Float32Array(PETAL_COUNT);
+  /** Постоянные особенности лепестка: наклон относительно нити, оттенок, фаза трепета. */
+  const tilt = Float32Array.from({ length: PETAL_COUNT }, () => (Math.random() - 0.5) * 1.2);
+  const colorOf = Array.from({ length: PETAL_COUNT }, () => Math.floor(Math.random() * PETAL_COLORS.length));
+  const phase = Float32Array.from({ length: PETAL_COUNT }, () => Math.random() * Math.PI * 2);
+  const order = Array.from({ length: PETAL_COUNT }, (_, i) => i);
+  for (let i = 0; i < PETAL_COUNT; i++) {
     position[i * 3] = (Math.random() - 0.5) * 5;
     position[i * 3 + 1] = 2.2 + Math.random() * 2.5;
     position[i * 3 + 2] = (Math.random() - 0.5) * 2;
@@ -189,16 +216,17 @@ export function startPearlHeart(): void {
     const inHero = event.clientY >= rect.top && event.clientY <= rect.bottom;
     const onControl = event.target instanceof Element && event.target.closest('a, button');
     if (!inHero || onControl) return;
-    scatterPearls();
+    scatterPetals();
   }, { passive: true });
   document.addEventListener('pointerleave', () => { pointer.active = false; });
 
-  /** Клик по первому экрану рассыпает жемчуг, и он собирается обратно. */
-  function scatterPearls(): void {
-    for (let i = 0; i < PEARL_COUNT; i++) {
+  /** Клик по первому экрану рассыпает лепестки, и они собираются обратно. */
+  function scatterPetals(): void {
+    for (let i = 0; i < PETAL_COUNT; i++) {
       velocity[i * 3] += (Math.random() - 0.5) * 7;
       velocity[i * 3 + 1] += (Math.random() - 0.3) * 7;
       velocity[i * 3 + 2] += (Math.random() - 0.5) * 5;
+      tumble[i] += (Math.random() - 0.5) * 9;
     }
   }
 
@@ -223,7 +251,7 @@ export function startPearlHeart(): void {
     lastFrame = now;
     const t = prefersReducedMotion ? 3 : (now - startedAt) / 1000;
 
-    // Пока конверт закрыт, жемчуг «заморожен»; после открытия плавно собирается.
+    // Пока конверт закрыт, лепестки ждут над экраном; после открытия плавно собираются.
     if (openedAt === null) openedAt = now;
     const gather = openedAt === null ? 0 : Math.min(1, (now - openedAt) / GATHER_MS);
     const spring = 16 * gather * gather;
@@ -243,18 +271,22 @@ export function startPearlHeart(): void {
     const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
     const cosPitch = Math.cos(pitch), sinPitch = Math.sin(pitch);
 
-    for (let i = 0; i < PEARL_COUNT; i++) {
-      // Внешняя нить течёт по часовой стрелке, внутренняя — навстречу.
+    for (let i = 0; i < PETAL_COUNT; i++) {
+      // Внешняя гирлянда течёт по часовой стрелке, внутренняя — навстречу.
       const outer = i < OUTER_COUNT;
       const index = outer ? i : i - OUTER_COUNT;
       const count = outer ? OUTER_COUNT : INNER_COUNT;
       const progress = outer ? index / count + t * 0.018 : index / count - t * 0.026;
       const [heartX, heartY] = pointOnHeart(progress);
-      const pearlScale = outer ? scale : scale * 0.6;
+      const [nextX, nextY] = pointOnHeart(progress + (outer ? 0.004 : -0.004));
+      const petalScale = outer ? scale : scale * 0.6;
 
-      const x = heartX * pearlScale;
-      const y = heartY * pearlScale + offsetY;
+      const x = heartX * petalScale;
+      const y = heartY * petalScale + offsetY;
       const z = (outer ? 0.09 : 0.16) * Math.sin(progress * Math.PI * 2 * (outer ? 5 : 3) + t * 1.4);
+
+      // Лепесток лежит вдоль нити: угол — направление течения плюс собственный наклон.
+      angle[i] = Math.atan2(-(nextY - heartY), nextX - heartX) + tilt[i];
 
       // Целевая точка: поворот вокруг оси Y, затем вокруг оси X.
       const xTurned = x * cosYaw + z * sinYaw;
@@ -263,14 +295,14 @@ export function startPearlHeart(): void {
       const targetY = y * cosPitch - zTurned * sinPitch;
       const targetZ = y * sinPitch + zTurned * cosPitch;
 
-      // Пружина тянет жемчужину к цели, трение гасит скорость.
+      // Пружина тянет лепесток к цели, трение гасит скорость.
       let vx = velocity[i * 3], vy = velocity[i * 3 + 1], vz = velocity[i * 3 + 2];
       let px = position[i * 3], py = position[i * 3 + 1], pz = position[i * 3 + 2];
       let ax = (targetX - px) * spring - vx * damping;
       let ay = (targetY - py) * spring - vy * damping;
       let az = (targetZ - pz) * spring - vz * damping;
 
-      if (pointer.active) { // курсор отталкивает жемчуг
+      if (pointer.active) { // курсор отталкивает лепестки и слегка их закручивает
         const dx = px - pointer.x;
         const dy = py - pointer.y;
         const distance = Math.hypot(dx, dy) + 1e-4;
@@ -279,6 +311,7 @@ export function startPearlHeart(): void {
           ax += dx * push;
           ay += dy * push;
           az -= push * 0.05;
+          tumble[i] += push * dx * dt * 6;
         }
       }
 
@@ -288,18 +321,24 @@ export function startPearlHeart(): void {
       position[i * 3] = px; position[i * 3 + 1] = py; position[i * 3 + 2] = pz;
       velocity[i * 3] = vx; velocity[i * 3 + 1] = vy; velocity[i * 3 + 2] = vz;
 
+      // Кувырок затухает, и лепесток снова ложится вдоль нити.
+      tumble[i] = Math.max(-14, Math.min(14, tumble[i])) * Math.max(0, 1 - dt * 1.6);
+      spin[i] = (spin[i] + tumble[i] * dt) * Math.max(0, 1 - dt * 1.2);
+      angle[i] += spin[i];
+
       radii[i] = (outer ? OUTER_RADIUS : INNER_RADIUS) * (0.9 + 0.1 * Math.min(1, gather * 3));
     }
 
-    draw();
+    draw(t);
   });
 
   /** Перспективная проекция: мировая точка → пиксели холста (так же, как считала камера шейдера). */
-  function draw(): void {
+  function draw(t: number): void {
     const { width, height } = canvas;
+    context!.setTransform(1, 0, 0, 1, 0, 0);
     context!.clearRect(0, 0, width, height);
 
-    // Сначала все тени, потом жемчужины от дальних к ближним.
+    // Сначала все тени, потом лепестки от дальних к ближним.
     order.sort((a, b) => position[b * 3 + 2] - position[a * 3 + 2]);
     const pixelsPerUnit = height / 2 * FOCAL;
 
@@ -309,8 +348,9 @@ export function startPearlHeart(): void {
       const x = width / 2 + position[i * 3] * k;
       const y = height / 2 - position[i * 3 + 1] * k;
       const size = radii[i] * k * 2;
-      if (x < -size || x > width + size || y < -size || y > height + size) continue;
-      context!.drawImage(shadowSprite, x + SHADOW_OFFSET[0] * k - size * 1.05, y + SHADOW_OFFSET[1] * k - size * 1.05, size * 2.1, size * 2.1);
+      if (x < -size * 2 || x > width + size * 2 || y < -size * 2 || y > height + size * 2) continue;
+      const shadowSize = size * 1.9;
+      context!.drawImage(shadowSprite, x + SHADOW_OFFSET[0] * k - shadowSize / 2, y + SHADOW_OFFSET[1] * k - shadowSize / 2, shadowSize, shadowSize);
     }
     for (const i of order) {
       const depth = position[i * 3 + 2] + CAMERA_Z;
@@ -318,8 +358,15 @@ export function startPearlHeart(): void {
       const x = width / 2 + position[i * 3] * k;
       const y = height / 2 - position[i * 3 + 1] * k;
       const size = radii[i] * k * 2;
-      if (x < -size || x > width + size || y < -size || y > height + size) continue;
-      context!.drawImage(pearlSprite, x - size / 2, y - size / 2, size, size);
+      if (x < -size * 2 || x > width + size * 2 || y < -size * 2 || y > height + size * 2) continue;
+
+      // Лепесток трепещет: его «ширина» то сжимается, то растёт, будто он поворачивается к свету.
+      const flutter = prefersReducedMotion ? 1 : 0.8 + 0.2 * Math.cos(t * 1.7 + phase[i]);
+      const length = size * PETAL_LENGTH;
+      const cos = Math.cos(angle[i]), sin = Math.sin(angle[i]);
+      context!.setTransform(cos, sin, -sin * flutter, cos * flutter, x, y);
+      context!.drawImage(petalSprites[colorOf[i]], -length / 2, -length / 2, length, length);
     }
+    context!.setTransform(1, 0, 0, 1, 0, 0);
   }
 }

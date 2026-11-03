@@ -15,7 +15,7 @@
 </head>
 <body class="locked">
 
-  <!-- общие SVG-определения: жемчужина -->
+  <!-- общие SVG-определения -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <!-- свечение пера, которым «пишутся» надписи -->
@@ -24,18 +24,12 @@
         <stop offset=".35" stop-color="#fbe9b0" stop-opacity=".45"/>
         <stop offset="1" stop-color="#fbe9b0" stop-opacity="0"/>
       </radialGradient>
-      <radialGradient id="pearl" cx="34%" cy="30%" r="75%">
-        <stop offset="0" stop-color="#fffdf0"/>
-        <stop offset=".28" stop-color="#fbf0cc"/>
-        <stop offset=".65" stop-color="#ead29a"/>
-        <stop offset="1" stop-color="#b8975a"/>
-      </radialGradient>
     </defs>
   </svg>
 
   <canvas id="silk" aria-hidden="true"></canvas>
-  <!-- жемчужное сердце: на всю ширину страницы, по высоте — как первый экран (размер задаёт pearlHeart.ts) -->
-  <canvas id="pearl3d" aria-hidden="true"></canvas>
+  <!-- сердце из лепестков: на всю ширину страницы, по высоте — как первый экран (размер задаёт petalHeart.ts) -->
+  <canvas id="petals" aria-hidden="true"></canvas>
 
   <!-- ===================== ИНТРО: ПИСЬМО ===================== -->
   <div id="intro">
