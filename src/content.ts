@@ -19,6 +19,9 @@ export function buildBindings(config: WeddingConfig): Bindings {
     monogram: `${config.groom[0]}&${config.bride[0]}`,
     orgName: config.organizer.name,
     deadline: config.rsvp.deadline,
+    venueName: config.venue.name,
+    venueAddress: config.venue.address,
+    venueCity: config.venue.city,
 
     // Для надписей, которые «рисуются» пером:
     groomLat: config.groomLatin || config.groom,
@@ -36,9 +39,37 @@ export function fillContent(config: WeddingConfig, bindings: Bindings): void {
   document.title = `${config.groom} & ${config.bride} — приглашение на свадьбу`;
 
   fillCalendar(config);
+  fillVenue(config);
+  fillPalette(config);
   fillTimeline(config);
   fillPhoto(config);
   fillContactLink(config);
+}
+
+/** Адрес ведёт на карту; без фото блок обходится без картинки. */
+function fillVenue({ venue }: WeddingConfig): void {
+  const query = encodeURIComponent(`${venue.name}, ${venue.address}, ${venue.city}`);
+  $<HTMLAnchorElement>('#venueAddress').href = `https://www.google.com/maps/search/?api=1&query=${query}`;
+
+  const image = $<HTMLImageElement>('#venuePhoto');
+  if (!venue.photo) {
+    image.hidden = true;
+    return;
+  }
+  image.onerror = () => { image.hidden = true; };
+  image.src = venue.photo;
+}
+
+/** Каждый цвет — пара пересекающихся кругов: «шёлк» с переливом и ровная заливка. */
+function fillPalette({ palette }: WeddingConfig): void {
+  $('#palette').innerHTML = palette
+    .map(({ name, note, color }) => `
+      <li class="rv" style="--c: ${escapeHtml(color)}">
+        <span class="swatch"><i class="silk"></i><i class="flat"></i></span>
+        <strong>${escapeHtml(name)}</strong>
+        ${note ? `<em>${escapeHtml(note)}</em>` : ''}
+      </li>`)
+    .join('');
 }
 
 const MONTHS = [

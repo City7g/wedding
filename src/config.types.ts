@@ -4,6 +4,23 @@ export interface TimelineItem {
   text: string;
 }
 
+export interface Venue {
+  name: string;
+  /** Улица и дом, вторая строка — город. */
+  address: string;
+  city: string;
+  /** Фото места. Файл лежит в public/. Пустая строка — фото не показывается. */
+  photo: string;
+}
+
+export interface PaletteColor {
+  name: string;
+  /** Пояснение мелким шрифтом под названием (необязательно). */
+  note?: string;
+  /** Основной оттенок в CSS-формате, например '#6b1426'. */
+  color: string;
+}
+
 export interface Organizer {
   name: string;
   phone: string;
@@ -30,6 +47,9 @@ export interface WeddingConfig {
   brideLatin: string;
   /** Дата и время начала, местное время гостей (ISO без часового пояса). */
   date: string;
+  venue: Venue;
+  /** Цвета дресс-кода. */
+  palette: PaletteColor[];
   timeline: TimelineItem[];
   /** Фото на втором экране. Файл лежит в public/. Пустая строка — блок скрывается. */
   photo: string;

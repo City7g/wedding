@@ -153,6 +153,31 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 }
 .cal-grid .day.on b { position: relative; z-index: 1; font-weight: 700; font-size: 15px; }
 
+/* Место проведения */
+.venue-label { font-size: 14px; letter-spacing: .04em; color: var(--ink-soft); }
+.venue-name {
+  margin-top: 14px; font-family: var(--serif); font-weight: 300; text-transform: uppercase;
+  font-size: clamp(30px, 8.6vw, 42px); line-height: 1.05; letter-spacing: .02em; color: var(--ink);
+}
+.venue-address { display: inline-block; margin-top: 18px; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-decoration: none; }
+.venue-address:hover, .venue-address:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.venue-photo { display: block; margin: 30px auto 0; width: 100%; max-width: 340px; height: auto; box-shadow: 0 14px 40px rgba(60, 8, 20, .2); }
+
+/* Дресс-код */
+.palette { list-style: none; margin: 38px auto 0; padding: 0; max-width: 340px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px 12px; }
+.palette li { display: flex; flex-direction: column; align-items: center; }
+.swatch { position: relative; display: block; width: 112px; height: 64px; }
+.swatch i { position: absolute; top: 0; width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 4px 14px rgba(60, 8, 20, .18); }
+.swatch .silk {
+  left: 0; z-index: 1;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, .55), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--c) 68%, white), var(--c) 48%, color-mix(in srgb, var(--c) 86%, black));
+}
+.swatch .flat { right: 0; background: var(--c); opacity: .92; mix-blend-mode: multiply; }
+.palette strong { margin-top: 14px; font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
+.palette em { margin-top: 3px; font-family: var(--serif); font-size: 15px; color: var(--ink-soft); }
+
 /* ------------------------------------------------------------------ */
 /* Карта, кнопки                                                       */
 /* ------------------------------------------------------------------ */
@@ -182,17 +207,6 @@ section > *:not(.scatter) { position: relative; z-index: 1; }
 .timeline time { display: block; font-family: var(--serif); font-style: italic; font-size: 34px; line-height: 1.1; }
 .timeline strong { display: block; margin-top: 6px; font-weight: 500; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
 .timeline p { margin-top: 6px; font-size: 13px; line-height: 1.6; opacity: .88; max-width: 280px; }
-
-/* ------------------------------------------------------------------ */
-/* Дресс-код                                                           */
-/* ------------------------------------------------------------------ */
-.swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 30px auto 0; max-width: 340px; }
-.swatch {
-  width: 74px; height: 74px; border-radius: 50%;
-  box-shadow: 0 8px 18px rgba(60, 8, 20, .22), inset 0 0 0 1px rgba(255, 255, 255, .5);
-  transition: transform .5s var(--ease);
-}
-.swatch:hover { transform: scale(1.1) rotate(8deg); }
 
 /* ------------------------------------------------------------------ */
 /* Форма                                                               */
