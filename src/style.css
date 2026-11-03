@@ -361,8 +361,8 @@ body.locked .scatter { opacity: 0; }
 .photo figcaption { margin-top: 40px; opacity: 0; }
 
 /* одна линия: перо вычерчивает центральную линию каждой буквы (ход пера — в drawText.ts, GSAP) */
-.draw .st, .draw .ink { stroke-dasharray: 1 2; stroke-dashoffset: 1; } /* «1 2»: пока штрих не начат, на его конце не остаётся точки от скруглённого края */
-.draw .dot, .draw .full { opacity: 0; }
+.draw .st { stroke-dasharray: 1 2; stroke-dashoffset: 1; } /* «1 2»: пока штрих не начат, на его конце не остаётся точки от скруглённого края */
+.draw .dot, .draw .full, .draw .pen { opacity: 0; }
 
 /* ------------------------------------------------------------------ */
 /* Таймер: цифры перекатываются сверху вниз                            */

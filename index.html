@@ -18,6 +18,12 @@
   <!-- общие SVG-определения: жемчужина -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
+      <!-- свечение пера, которым «пишутся» надписи -->
+      <radialGradient id="penGlow">
+        <stop offset="0" stop-color="#fff6d8" stop-opacity=".95"/>
+        <stop offset=".35" stop-color="#fbe9b0" stop-opacity=".45"/>
+        <stop offset="1" stop-color="#fbe9b0" stop-opacity="0"/>
+      </radialGradient>
       <radialGradient id="pearl" cx="34%" cy="30%" r="75%">
         <stop offset="0" stop-color="#fffdf0"/>
         <stop offset=".28" stop-color="#fbf0cc"/>

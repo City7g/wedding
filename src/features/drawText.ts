@@ -4,9 +4,10 @@
  * В разметке это элементы `<span class="draw name" data-src="groom">`: класс задаёт вид надписи
  * (см. DrawKind), data-src — что писать (ключ из Bindings или готовый текст), data-delay — пауза в секундах.
  *
- * Как это работает: сначала «перо» вычерчивает тонкую линию — центральную линию каждой буквы (stroke-dasharray / stroke-dashoffset).
- * Чуть позже за ней по тем же линиям проявляется настоящий шрифт Great Vibes (маска), «наливая» букву.
- * В конце проявляется весь текст целиком — на случай тонких волосков, которые маска не покрыла, — а тонкая линия гаснет.
+ * Как это работает: настоящий шрифт Great Vibes закрыт маской из центральных линий букв. Каждая линия вычерчивается
+ * (stroke-dasharray / stroke-dashoffset), и буква проявляется ровно там, где прошло перо. Впереди бежит светящаяся
+ * точка с мерцающим хвостом, поэтому письмо выглядит как живой росчерк. Маска шире самой буквы, так что к концу
+ * проявляется всё без «добавки»; финальное мягкое проявление лишь подстраховывает самые тонкие волоски.
  */
 import { gsap } from 'gsap';
 import type { Bindings } from '../content';
@@ -34,10 +35,13 @@ const KINDS: Record<DrawKind, KindSettings> = {
 
 /** Пиксель текста считается «чернилами», если он плотнее этого порога (0–255). */
 const INK_THRESHOLD = 55;
-/** Толщина видимой линии пера относительно размера шрифта. */
-const INK_WIDTH = 0.028;
-/** На сколько секунд заливка букв отстаёт от пера. */
-const FILL_LAG = 0.5;
+/** Толщина маски относительно размера шрифта: с запасом покрывает самую жирную часть буквы. */
+const MASK_WIDTH = 0.17;
+/** Светящееся перо: радиус ядра и ореола относительно размера шрифта. */
+const PEN_CORE = 0.04;
+const PEN_GLOW = 0.2;
+/** Сколько светящихся «искорок» тянется за пером и как быстро они уменьшаются. */
+const TRAIL_LENGTH = 9;
 /** Допуск упрощения линии штриха, в пикселях. */
 const SIMPLIFY_TOLERANCE = 1.3;
 /** Символы, которые нужно заранее загрузить в шрифт, помимо самих надписей. */
@@ -102,7 +106,6 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
   const penSpeed = fontSize * speed;
   let time = delay;
   let maskContent = '';
-  let inkContent = '';
 
   for (const { mark } of marks) {
     if (mark.kind === 'dot') {
@@ -112,16 +115,14 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
     } else {
       const duration = Math.max(0.12, mark.length / penSpeed);
       const path = toSmoothPath(simplify(mark.points, SIMPLIFY_TOLERANCE));
-      const timing = `data-d="${time.toFixed(2)}" data-t="${duration.toFixed(2)}"`;
-      maskContent += `<path class="st" pathLength="1" d="${path}" ${timing}/>`;
-      inkContent += `<path class="ink" pathLength="1" d="${path}" ${timing}/>`;
+      maskContent += `<path class="st" pathLength="1" d="${path}" data-d="${time.toFixed(2)}" data-t="${duration.toFixed(2)}"/>`;
       time += duration * 0.96; // следующий штрих начинается почти сразу: перо не «спотыкается» между буквами
     }
   }
 
   // 4. Настоящий текст под маской + такой же полный, который проявляется в конце.
   const maskId = `pen-mask-${++maskCounter}`;
-  const strokeWidth = (fontSize * 0.13).toFixed(1);
+  const strokeWidth = (fontSize * MASK_WIDTH).toFixed(1);
   const label = escapeHtml(text);
   const textAttributes = `x="${padding}" y="${baseline}" font-family="${fontFamily}" font-size="${fontSize}" fill="currentColor"`;
 
@@ -130,31 +131,78 @@ function buildPenText(text: string, kind: KindSettings, delay: number, context: 
     `<g fill="none" stroke="#fff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${maskContent}</g>` +
     `</mask></defs>` +
     `<text ${textAttributes} mask="url(#${maskId})">${label}</text>` +
-    `<g class="inks" fill="none" stroke="currentColor" stroke-width="${(fontSize * INK_WIDTH).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round">${inkContent}</g>` +
-    `<text class="full" ${textAttributes} data-d="${(time - 0.15).toFixed(2)}">${label}</text>` +
+    `<text class="full" ${textAttributes} data-d="${time.toFixed(2)}">${label}</text>` +
+    `<g class="pen" data-core="${(fontSize * PEN_CORE).toFixed(1)}" data-glow="${(fontSize * PEN_GLOW).toFixed(1)}"></g>` +
     `</svg>`;
 }
 
-/** Расписание надписи: штрихи вычерчиваются, точки появляются, в конце проявляется весь текст. */
+/** Светящееся перо: ядро, ореол и хвост из искорок. Возвращает функцию, переносящую перо в точку. */
+function createPen(group: SVGGElement): (x: number, y: number, restart?: boolean) => void {
+  const core = Number(group.dataset.core);
+  const glow = Number(group.dataset.glow);
+  const circle = (r: number, fill: string, opacity: number) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    node.setAttribute('r', r.toFixed(1));
+    node.setAttribute('fill', fill);
+    node.setAttribute('opacity', opacity.toFixed(2));
+    group.appendChild(node);
+    return node;
+  };
+
+  // Хвост рисуем первым (он под ядром): чем старее искорка, тем она меньше и прозрачнее.
+  const trail = Array.from({ length: TRAIL_LENGTH }, (_, i) => {
+    const k = 1 - (i + 1) / (TRAIL_LENGTH + 1);
+    return circle(core * (0.3 + 0.7 * k), '#fff3cf', 0.85 * k);
+  });
+  const halo = circle(glow, 'url(#penGlow)', 1);
+  const tip = circle(core, '#fffdf5', 1);
+  const history: { x: number; y: number }[] = [];
+
+  return (x, y, restart = false) => {
+    if (restart) history.length = 0;
+    history.unshift({ x, y });
+    history.length = Math.min(history.length, TRAIL_LENGTH + 1);
+    for (const node of [halo, tip]) {
+      node.setAttribute('cx', x.toFixed(1));
+      node.setAttribute('cy', y.toFixed(1));
+    }
+    trail.forEach((node, i) => {
+      const point = history[Math.min(i + 1, history.length - 1)];
+      node.setAttribute('cx', point.x.toFixed(1));
+      node.setAttribute('cy', point.y.toFixed(1));
+    });
+  };
+}
+
+/** Расписание надписи: перо вычерчивает штрихи, точки появляются, в конце мягко проявляется весь текст. */
 function buildPenTimeline(element: Element): gsap.core.Timeline {
   const at = (target: Element) => Number(target.getAttribute('data-d'));
   const timeline = gsap.timeline({ paused: true, onComplete: () => element.classList.add('done') });
+  const pen = $<SVGGElement>('.pen', element);
+  const movePen = createPen(pen);
 
-  const drawLine = (stroke: Element, start: number) => timeline.fromTo(stroke, { strokeDashoffset: 1 }, {
-    strokeDashoffset: 0, duration: Number(stroke.getAttribute('data-t')), ease: 'none', // ровный ход пера
-  }, start);
-
-  for (const stroke of $$('.ink', element)) drawLine(stroke, at(stroke));
-  for (const stroke of $$('.st', element)) drawLine(stroke, at(stroke) + FILL_LAG);
+  for (const stroke of $$<SVGPathElement>('.st', element)) {
+    const length = stroke.getTotalLength();
+    timeline.fromTo(stroke, { strokeDashoffset: 1 }, {
+      strokeDashoffset: 0, duration: Number(stroke.getAttribute('data-t')), ease: 'none', // ровный ход пера
+      onStart: () => { gsap.set(pen, { opacity: 1 }); },
+      onUpdate() {
+        const point = stroke.getPointAtLength(length * this.ratio);
+        movePen(point.x, point.y, this.ratio < 0.02);
+      },
+    }, at(stroke));
+  }
   for (const dot of $$('.dot', element)) {
     timeline.fromTo(dot, { opacity: 0, scale: 0.2, transformOrigin: '50% 50%' }, {
       opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out',
-    }, at(dot) + FILL_LAG);
+    }, at(dot));
   }
-  const full = $('.full', element);
+
+  // Перо гаснет, а текст целиком мягко «подтягивает» то, что маска могла не накрыть.
+  const end = at($('.full', element));
   timeline
-    .fromTo(full, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: 'sine.inOut' }, at(full) + FILL_LAG)
-    .to($('.inks', element), { opacity: 0, duration: 0.8, ease: 'sine.inOut' }, at(full) + FILL_LAG);
+    .to(pen, { opacity: 0, duration: 0.5, ease: 'power1.out' }, end)
+    .fromTo($('.full', element), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'sine.inOut' }, end);
 
   return timeline;
 }
