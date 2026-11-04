@@ -230,7 +230,7 @@ section > * { position: relative; z-index: 1; }
 /* ------------------------------------------------------------------ */
 /* Финал                                                               */
 /* ------------------------------------------------------------------ */
-.finale { padding: 110px 28px 90px; }
+.finale { padding: 110px 28px 220px; }
 .rings { margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(60, 10, 20, .3)); }
 .until { margin-top: 10px; font-size: 13px; opacity: .9; }
 .countdown { display: flex; justify-content: center; gap: 6px; margin-top: 20px; }

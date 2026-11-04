@@ -8,6 +8,7 @@ import { startCountdown } from './features/countdown';
 import { initDrawnText } from './features/drawText';
 import { initIntro } from './features/intro';
 import { initPhoto } from './features/photo';
+import { hidePreloader, waitForAssets } from './features/preloader';
 import { initReveal } from './features/reveal';
 import { initRsvpForm } from './features/rsvp';
 import { initSectionReveal } from './features/sectionReveal';
@@ -27,5 +28,10 @@ void initDrawnText(bindings);
 
 // Живые части страницы
 startCountdown(new Date(config.date));
-initIntro();
 initRsvpForm(config);
+
+// Письмо появляется только после прелоадера: к этому моменту стили, шрифты и фото уже загружены.
+void waitForAssets(config).then(() => {
+  hidePreloader();
+  initIntro();
+});
