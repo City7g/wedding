@@ -62,8 +62,9 @@ function fillVenue({ venue }: WeddingConfig): void {
 function fillPalette({ palette }: WeddingConfig): void {
   $('#palette').innerHTML = palette
     .map(({ name, note, color }) => `
-      <li class="rv" style="--c: ${escapeHtml(color)}">
-        <span class="swatch"><i class="silk"></i><i class="flat"></i></span>
+      <li class="rv">
+        <!-- --c задаём не на li: после появления GSAP чистит inline-стиль у .rv, и цвет бы пропал -->
+        <span class="swatch" style="--c: ${escapeHtml(color)}"><i class="silk"></i><i class="flat"></i></span>
         <strong>${escapeHtml(name)}</strong>
         ${note ? `<em>${escapeHtml(note)}</em>` : ''}
       </li>`)
